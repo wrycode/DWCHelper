@@ -1,8 +1,5 @@
 # This repository holds research, notes and source code for the project. 
 
-You can leave drive-by comments and messages at
-https://todo.sr.ht/~wrycode/olduvai
-
 Click on "tree" to view the files and folders, and "log" to see
 messages attached to each change in the project.
 
@@ -63,11 +60,6 @@ definitions to Darwin Core. This will strengthen the standard. It
 would appear as a submission option in the interface. Then it will get
 sent to me personally (or someone with the knowledge and authority) to
 review and send upstream.
-
-The actual user interface to the helper program hasn't been planned
-out. Ideally it will be a simple graphical program with recognizable
-forms and buttons, but initially it will probably be an automatically
-generated text configuration file.
 
 ## Data Visualization
 
