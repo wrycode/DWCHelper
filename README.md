@@ -18,8 +18,15 @@ Both components will share several dependencies. Right now, they are
 We will likely contribute upstream to Darwin Core.
 
 As I am now starting to work with Windows (while writing some of the
-cross-platform application logic from my Linux laptop), **my current
-top focus is setting up the PostgreSQL database server**. Then, in order:
+cross-platform application logic from my Linux laptop), ~~my current
+top focus is setting up the PostgreSQL database server~~. Update:
+initial server setup complete. See [server.md](server.md).
+
+[Alternative
+link](https://git.sr.ht/~wrycode/olduvai/tree/master/server.md), since
+I'm not sure whether Sourcehut supports automatic relative links in markdown.
+
+Then, in order:
 
 * move/convert the current databases to PostgreSQL, and in the
   process, build the prototype "helper"
