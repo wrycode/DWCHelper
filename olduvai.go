@@ -17,23 +17,29 @@ func main() {
 	}
 
 	filename := os.Args[1]
-	dbase1 := importData(filename)
-	//	fmt.Println(checkDatabase(dbase1))
-	for i, value := range dbase1.variables {
-		fmt.Print(value, " ")
-		if i % 5 == 0 {
-			fmt.Println()
-		}
-	}
-	fmt.Println()
-//	fmt.Print(dbase1.variables)
-	
-	// TODO: Various checks on the dataset 
+	originalDB := importData(filename) // original dataset, which we won't change
 
+	// copy dbase1 over to a fresh database for modification
+	var alteredDB database
+	alteredDB.data = make(map[string]column)
+	for k, v := range originalDB.data {
+		alteredDB.data[k] = v
+	}
+	alteredDB.variables = originalDB.variables
+
+	// populate the "type" for each column
+	for _, v := range alteredDB.data {
+		v = inferType(v)
+	}
+
+	
+	
+
+	
 	// Import DWC aliases and definitions
 
 	// Run through each variable and build new database with user input
-
+	fmt.Println()
 }
 // importData imports a CSV file. It takes a filename as an argument and returns a database
 func importData(filename string) database {
@@ -76,6 +82,13 @@ func importData(filename string) database {
 	dbase.variables = vars // add the ordered list of variables (dbase.data is a map, and therefore unordered)
 	return dbase
 }
+
+// inferTypes fills up the varType variable for a column based on some
+// simple rules
+func inferType(c column) column {
+	return c // dummy function
+}
+
 
 // holds all of the variables and their data 
 type database struct {
