@@ -70,6 +70,17 @@ The program will:
 
 ### Helper Program notes <a id="helper"></a>
 
+#### Limitations
+
+- No commas in fields. Other special characters like "?" are fine.
+  - The helper automatically detects extra commas and tells the
+  researcher which line to fix. 
+  - Later, I may look into whether MS Access can escape the commas,
+  and then I could programmatically import them.  Another option is to
+  allow them, but only in the last variable called "Comments".
+  - For now, I'm removing the commas from the "Comments" field in
+    specimen numbers 10 and 43
+  
 #### Programming language
 
 Why not lisp? Common Lisp lacks the first-class Windows support I
