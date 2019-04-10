@@ -28,7 +28,8 @@ func main() {
 	alteredDB.variables = originalDB.variables
 
 	// populate the "type" for each column
-	for _, v := range alteredDB.data {
+	for s, v := range alteredDB.data {
+		fmt.Printf("Running inferType on column %v, with values %v \n", s, v.values[0:])
 		v = inferType(v)
 	}
 
@@ -84,9 +85,17 @@ func importData(filename string) database {
 }
 
 // inferTypes fills up the varType variable for a column based on some
-// simple rules
+// simple rules, also remove surrounding quotes from values in column
 func inferType(c column) column {
-	return c // dummy function
+	for i, value := range c.values {
+		if strings.HasSuffix(value, "\"") && strings.HasPrefix(value, "\"") {
+			if i  == 0 || i == 50 || i == 100 {
+			fmt.Printf("Stripping quotes from value %v and setting varType to string\n",value)
+			}
+		}
+		value = strings.Trim(value, "\"")
+	}
+	return c
 }
 
 
