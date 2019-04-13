@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"strconv"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	filename := os.Args[1]
 	originalDB := importData(filename) // original dataset, which we won't change
 
-	// copy dbase1 over to a fresh database for modification
+	// copy originalDB over to a fresh database for modification
 	var alteredDB database
 	alteredDB.data = make(map[string]column)
 	for k, v := range originalDB.data {
@@ -27,21 +28,36 @@ func main() {
 	}
 	alteredDB.variables = originalDB.variables
 
+	// set "hasDifferentValues" variable for each column
+	for s, v := range alteredDB.data {
+		v.hasDifferentValues = notAllSame(v.values)
+		alteredDB.data[s] = v
+	}
+	
 	// populate the "type" for each column
 	for s, v := range alteredDB.data {
-		fmt.Printf("Running inferType on column %v, with values %v \n", s, v.values[0:])
-		v = inferType(v)
+			alteredDB.data[s] = inferType(v)
 	}
 
+	// print info about "useful" variables
+	for s, v := range alteredDB.data {
+		if v.hasDifferentValues {
+			fmt.Println("Variable name: ", s)
+			fmt.Println("=============================================================")
+			fmt.Println("Values: ", v.values[50:55])
+			fmt.Println("Inferred type: ", v.varType)
+			fmt.Println("v.hasDifferentValues: ", v.hasDifferentValues)
+			fmt.Println()
+		}
+	}
 	
-	
-
 	
 	// Import DWC aliases and definitions
 
 	// Run through each variable and build new database with user input
 	fmt.Println()
 }
+
 // importData imports a CSV file. It takes a filename as an argument and returns a database
 func importData(filename string) database {
 	// Get some data to work with
@@ -84,31 +100,63 @@ func importData(filename string) database {
 	return dbase
 }
 
-// inferTypes fills up the varType variable for a column based on some
-// simple rules, also remove surrounding quotes from values in column
-func inferType(c column) column {
-	for i, value := range c.values {
-		if strings.HasSuffix(value, "\"") && strings.HasPrefix(value, "\"") {
-			if i  == 0 || i == 50 || i == 100 {
-			fmt.Printf("Stripping quotes from value %v and setting varType to string\n",value)
-			}
+// notAllSame returns true if not every element of a string slice is the same
+func notAllSame(s []string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] != s[0] {
+			return true
 		}
-		value = strings.Trim(value, "\"")
 	}
-	return c
+	return false
 }
 
+// inferTypes fills up the varType variable for a column based on
+// built in parsing, also remove surrounding quotes from values
+func inferType(c column) column {
+	c.varType = "string"
+//	p := c.hasDifferentValues // Only print output about the inferences if it's a useful variable
+	for _, value := range c.values {
+	//	if p { p := (i == 0 | 50 | 100) } // Print info for only some of the values
+
+		// Strip quotes
+		if strings.HasSuffix(value, "\"") && strings.HasPrefix(value, "\"") {
+			// if p {
+			// fmt.Printf("Stripping quotes from value %v , ",value)
+			// }
+			value = strings.Trim(value, "\"")
+		}
+
+		// Attempt number conversions
+		_, err1 := strconv.ParseFloat(value, 64)
+		_, err2 := strconv.Atoi(value)
+
+		if err1 == nil {
+			// if p {
+			// 	fmt.Printf(" setting numeric/floating point type, ")
+			// }
+			c.varType = "numeric/floating point"
+		}
+		if err2 == nil {
+			// if p {
+			// 	fmt.Printf(" setting integer type ")
+			// }
+			c.varType = "integer"
+		}
+	}
+//	fmt.Printf("varType: %v")
+	return c
+}
 
 // holds all of the variables and their data 
 type database struct {
 	data map[string]column // maps variable names to their full column
-	variables []string
-	// aliases 
+	variables []string // original ordered list of variables
 }
 
 // holds one "column" of the database; aka all of the values for one
 // variable (in order)
 type column struct {
-	varType, alias, definition string // other metadata
 	values []string // values are stored in strings
+	varType, alias, definition string // other metadata
+	hasDifferentValues bool // whether the values change for each specimen (good indicator that it's a useful variable)
 }
