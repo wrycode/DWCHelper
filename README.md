@@ -59,9 +59,7 @@ The program will:
 
 #### Limitations
 
-~~No commas in fields. Later, I may look into whether MS Access can
-  escape the commas, and then I could programmatically import them.~~
-  Commas are fine in quoted fields. All special characters work.
+  Commas are now fine in quoted fields. All special characters work.
   
 #### Programming language
 
