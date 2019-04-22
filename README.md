@@ -13,21 +13,11 @@ Both components will share several dependencies. Right now, they are
 * [Darwin Core](https://github.com/tdwg/dwc), a standard "intended to
   facilitate the sharing of information about biological diversity"
  
-* the database, [PostgreSQL](https://www.postgresql.org/)
+* the database, [PostgreSQL](https://www.postgresql.org/) (?)
  
 * Microsoft Access
 
 We will likely contribute upstream to Darwin Core.
-
-Current priorities: 
-
-* move/convert the current databases to PostgreSQL, and in the
-  process, build a prototype of the data import part of the helper
-
-* finish the helper (Darwin Core integration, syncing and updates
-  after the first import, etc.)
-
-* build the data visualization component
 
 ## Data Visualization
 
@@ -35,16 +25,13 @@ TODO
 
 ## Helper program
 
-The helper program imports existing datasets from Microsoft Access and
-moves them to the server. Optionally, it will help the researcher format
-their database using aliases and rules from Darwin Core.
+The helper program imports existing datasets from Microsoft Access
+~~and moves them to the server~~. It helps the researcher format their
+database using aliases and rules from Darwin Core.
 
-[Here](https://git.sr.ht/~wrycode/olduvai/tree/master/olduvai.go) is
-the current iteration of the helper program.
-
-After some experimentation with Windows 10, I've decided against using
-Common Lisp. The helper program is a command-line program written
-using Go. [More about this decision](#helper).
+[Here](https://git.sr.ht/~wrycode/olduvai/tree/master/DWCHelper.go) is
+the current iteration of the helper program. It is a command-line
+program written using Go. [More about this decision](#helper).
 
 The program will:
 
@@ -72,14 +59,9 @@ The program will:
 
 #### Limitations
 
-- No commas in fields. Other special characters like "?" are fine.
-  - The helper automatically detects extra commas and tells the
-  researcher which line to fix. 
-  - Later, I may look into whether MS Access can escape the commas,
-  and then I could programmatically import them.  Another option is to
-  allow them, but only in the last variable called "Comments".
-  - For now, I'm removing the commas from the "Comments" field in
-    specimen numbers 10 and 43
+~~No commas in fields. Later, I may look into whether MS Access can
+  escape the commas, and then I could programmatically import them.~~
+  Commas are fine in quoted fields. All special characters work.
   
 #### Programming language
 
@@ -142,10 +124,20 @@ user to modify records if needed (to change the type, for example,
 although type inference should be correct 99% of the time). The
 researcher will need a password to the server to upload the database.
 
-     
-     
-     
+### Darwin Core 
 
+[Darwin Core "Simple"](http://rs.tdwg.org/dwc/simple/), a predefined
+normative subset of dwc terms that "assumes (and allows) no structure
+beyond the concept of rows and columns". DK_E_Fauna is almost entirely
+compatable with Darwin Core simple without modifications, because
+there are no required fields.
+
+[Guidelines for contributing to dwc terms](https://github.com/tdwg/dwc/blob/master/.github/CONTRIBUTING.md)
+[Darwin Core text guide](http://rs.tdwg.org/dwc/text/)
+
+[The csv with all dwc terms and definitions](https://github.com/tdwg/dwc/blob/master/vocabulary/term_versions.csv)
+
+[Simple only terms](https://github.com/tdwg/dwc/blob/master/dist/simple_dwc_vertical.csv)
 
 ## PostgreSQL server setup notes <a id="server"></a>
 
