@@ -5,11 +5,17 @@ Run DWCHelper with two command-line arguments, the first being the
 input file and the second being the output file.  */
 package main
 
-import (
+import (        
 	"encoding/csv"
 	"fmt"
 	"os"
+	"io/ioutil"
+	"net/http"
+	"strings"
 )
+
+const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
+const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
 
 func main() {
 	// Check for filename argument
@@ -23,7 +29,7 @@ func main() {
 
 	// TODO (number is how many hours I'm expecting for each task)
 	// Type inference 4
-	// Import DWC terms 2
+	// Import DWC terms 2 DONE
 	// Import DWC aliases WAITING on building alias file
 	// DWC term inferences WAITING on importing terms and aliases
 	// Detect unused terms, optionally remove them 2
@@ -31,8 +37,7 @@ func main() {
 
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
-
-	fmt.Println()
+	fmt.Println(pullDWCTerms())
 }
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
@@ -68,6 +73,36 @@ func importDB(filename string) database {
 		db.data[term] = temp
 	}
 	return db
+}
+
+// pullDWCTerms grabs the current list of DWC Simple terms from their
+// Github repository into a []string
+func pullDWCTerms() []string {
+	// default list of terms:
+	termList := "type,modified,language,license,rightsHolder,accessRights,bibliographicCitation,references,institutionID,collectionID,datasetID,institutionCode,collectionCode,datasetName,ownerInstitutionCode,basisOfRecord,informationWithheld,dataGeneralizations,dynamicProperties,occurrenceID,catalogNumber,recordNumber,recordedBy,individualCount,organismQuantity,organismQuantityType,sex,lifeStage,reproductiveCondition,behavior,establishmentMeans,occurrenceStatus,preparations,disposition,associatedMedia,associatedReferences,associatedSequences,associatedTaxa,otherCatalogNumbers,occurrenceRemarks,organismID,organismName,organismScope,associatedOccurrences,associatedOrganisms,previousIdentifications,organismRemarks,materialSampleID,eventID,parentEventID,fieldNumber,eventDate,eventTime,startDayOfYear,endDayOfYear,year,month,day,verbatimEventDate,habitat,samplingProtocol,sampleSizeValue,sampleSizeUnit,samplingEffort,fieldNotes,eventRemarks,locationID,higherGeographyID,higherGeography,continent,waterBody,islandGroup,island,country,countryCode,stateProvince,county,municipality,locality,verbatimLocality,minimumElevationInMeters,maximumElevationInMeters,verbatimElevation,minimumDepthInMeters,maximumDepthInMeters,verbatimDepth,minimumDistanceAboveSurfaceInMeters,maximumDistanceAboveSurfaceInMeters,locationAccordingTo,locationRemarks,decimalLatitude,decimalLongitude,geodeticDatum,coordinateUncertaintyInMeters,coordinatePrecision,pointRadiusSpatialFit,verbatimCoordinates,verbatimLatitude,verbatimLongitude,verbatimCoordinateSystem,verbatimSRS,footprintWKT,footprintSRS,footprintSpatialFit,georeferencedBy,georeferencedDate,georeferenceProtocol,georeferenceSources,georeferenceVerificationStatus,georeferenceRemarks,geologicalContextID,earliestEonOrLowestEonothem,latestEonOrHighestEonothem,earliestEraOrLowestErathem,latestEraOrHighestErathem,earliestPeriodOrLowestSystem,latestPeriodOrHighestSystem,earliestEpochOrLowestSeries,latestEpochOrHighestSeries,earliestAgeOrLowestStage,latestAgeOrHighestStage,lowestBiostratigraphicZone,highestBiostratigraphicZone,lithostratigraphicTerms,group,formation,member,bed,identificationID,identificationQualifier,typeStatus,identifiedBy,dateIdentified,identificationReferences,identificationVerificationStatus,identificationRemarks,taxonID,scientificNameID,acceptedNameUsageID,parentNameUsageID,originalNameUsageID,nameAccordingToID,namePublishedInID,taxonConceptID,scientificName,acceptedNameUsage,parentNameUsage,originalNameUsage,nameAccordingTo,namePublishedIn,namePublishedInYear,higherClassification,kingdom,phylum,class,order,family,genus,subgenus,specificEpithet,infraspecificEpithet,taxonRank,verbatimTaxonRank,scientificNameAuthorship,vernacularName,nomenclaturalCode,taxonomicStatus,nomenclaturalStatus,taxonRemarks"
+
+	// Try to pull the csv termlist from online
+	resp, err := http.Get(termURL)
+	if err != nil {
+		fmt.Printf("Cannot pull terms from Darwin Core repository: %s\n", err.Error())
+		fmt.Println("Using the built-in terms instead...")
+	} else {
+		contents, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("Error: cannot read contents of termURL", err.Error())
+		}
+		termList = string(contents)
+		defer resp.Body.Close()
+	}
+
+	// Use the CSV package to read the terms into a []string
+	r := csv.NewReader(strings.NewReader(termList))
+	terms, err := r.Read()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return terms
 }
 
 // exportDB exports its database argument to the file at the filename argument
