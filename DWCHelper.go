@@ -37,7 +37,10 @@ func main() {
 
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
-	fmt.Println(pullDWCTerms())
+	
+	for _, term := range pullDWCTerms() {
+		fmt.Println(showReference(term))
+	}
 }
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
@@ -103,6 +106,12 @@ func pullDWCTerms() []string {
 		os.Exit(1)
 	}
 	return terms
+}
+
+// showReference returns the URL for a term on the Darwin Core website,
+// which includes a definition, comments and examples
+func showReference(term string) string {
+	return referenceURL + "#" + term
 }
 
 // exportDB exports its database argument to the file at the filename argument
