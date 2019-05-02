@@ -12,10 +12,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"github.com/fatih/camelcase"
 )
 
 const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
 const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
+const aliasURL = "https://git.sr.ht/~wrycode/olduvai/tree/master/aliases.csv"
 
 func main() {
 	// Check for filename argument
@@ -28,18 +30,19 @@ func main() {
 	db := importDB(os.Args[1])
 
 	// TODO (number is how many hours I'm expecting for each task)
-	// Type inference 4
-	// Import DWC terms 2 DONE
-	// Import DWC aliases WAITING on building alias file
-	// DWC term inferences WAITING on importing terms and aliases
-	// Detect unused terms, optionally remove them 2
-	// Interactively check inferences, provide corrections 3? 4?
+	// Type inference 4 WAITING - not necessary for the helper?
+	// Import DWC terms 2 DONE 
+	// Import/generate DWC aliases 3 DONE
+	// DWC term inferences DONE
+	// Detect unused terms, optionally remove them 2 TODO
+	// Interactively check inferences, provide corrections 3? 4? FINAL STEP, TODO
 
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
 	
-	for _, term := range pullDWCTerms() {
-		fmt.Println(showReference(term))
+	aliases := getAliases(pullDWCTerms())
+	for alias, term := range aliases {
+		fmt.Println("Alias: ", alias, " term: ", term)
 	}
 }
 
@@ -112,6 +115,60 @@ func pullDWCTerms() []string {
 // which includes a definition, comments and examples
 func showReference(term string) string {
 	return referenceURL + "#" + term
+}
+
+// getAliases pulls the alias database from the repository or sets up
+// a default one. It returns a map of alias strings to their possible term
+func getAliases(terms []string) map[string]string {
+	//  map for storing possible aliases
+	var aliases = make(map[string]string)
+	
+	// Try to pull the alias file from online
+	resp, err := http.Get(aliasURL)
+	if err != nil {
+	 	fmt.Printf("Cannot pull aliases from upstream: %v\n", err.Error())
+	 	fmt.Println("Defaulting to an automatically generated alias list...")
+	} else { // Try to read the file
+		contents, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if err != nil {
+	 		fmt.Println("Error: cannot read contents of aliasURL", err.Error())
+	 		fmt.Println("Defaulting to an automatically generated alias list...")
+	
+	 	} else { // Try to parse using csv
+			r := csv.NewReader(strings.NewReader(string(contents)))
+			r.FieldsPerRecord = -1 // uneven fields numbers allowed
+			rows, err := r.ReadAll()
+			if err != nil {
+				fmt.Println("Cannot read CSV data from alias file:", err.Error())
+				os.Exit(1)
+			}
+
+			// If there were no errors pulling the aliases
+			// from the online CSV file, add obvious
+			// variations of the alias to the aliases map
+			// (mapped to the specified term).
+			for _, row := range rows {
+				term := row[0]
+				for _, alias := range row[1:] {
+					words := camelcase.Split(alias)
+					aliases[strings.Join(words, "")] = term
+					aliases[strings.Title(strings.Join(words, " "))] = term
+					aliases[strings.ToLower(strings.Join(words, " "))] = term
+				}
+			}
+		}
+	}
+
+	// Generate default aliases from obvious variations on
+	// the term names
+	for _, term := range terms {
+		words := camelcase.Split(term)
+		aliases[strings.Join(words, "")] = term
+		aliases[strings.Title(strings.Join(words, " "))] = term
+		aliases[strings.ToLower(strings.Join(words, " "))] = term
+	}
+	return aliases
 }
 
 // exportDB exports its database argument to the file at the filename argument
