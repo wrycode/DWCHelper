@@ -17,7 +17,7 @@ import (
 
 const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
 const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
-const aliasURL = "https://git.sr.ht/~wrycode/olduvai/tree/master/aliases.csv"
+const aliasURL = "https://git.sr.ht/~wrycode/olduvai/blob/master/aliases.csv"
 
 func main() {
 	// Check for filename argument
@@ -30,7 +30,7 @@ func main() {
 	db := importDB(os.Args[1])
 
 	// TODO (number is how many hours I'm expecting for each task)
-	// Type inference 4 WAITING - not necessary for the helper?
+	// Type inference 4 CANCELLED - Type inference will need to be done in the data vis program, but data types are not part of DWC specification
 	// Import DWC terms 2 DONE 
 	// Import/generate DWC aliases 3 DONE
 	// DWC term inferences DONE
@@ -44,6 +44,8 @@ func main() {
 	for alias, term := range aliases {
 		fmt.Println("Alias: ", alias, " term: ", term)
 	}
+
+//	fmt.Println(len(aliases))
 }
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
@@ -119,7 +121,7 @@ func showReference(term string) string {
 
 // getAliases pulls the alias database from the repository or sets up
 // a default one. It returns a map of alias strings to their possible term
-func getAliases(terms []string) map[string]string {
+func getAliases(terms []string) map[string]string { 
 	//  map for storing possible aliases
 	var aliases = make(map[string]string)
 	
@@ -141,34 +143,51 @@ func getAliases(terms []string) map[string]string {
 			rows, err := r.ReadAll()
 			if err != nil {
 				fmt.Println("Cannot read CSV data from alias file:", err.Error())
-				os.Exit(1)
-			}
+				fmt.Println("Defaulting to an automatically generated alias list...")
+			} else {
 
 			// If there were no errors pulling the aliases
 			// from the online CSV file, add obvious
 			// variations of the alias to the aliases map
-			// (mapped to the specified term).
 			for _, row := range rows {
 				term := row[0]
-				for _, alias := range row[1:] {
-					words := camelcase.Split(alias)
-					aliases[strings.Join(words, "")] = term
-					aliases[strings.Title(strings.Join(words, " "))] = term
-					aliases[strings.ToLower(strings.Join(words, " "))] = term
+				for _, entry := range row[1:] {
+//					fmt.Println("running addAliases(",entry,"aliases",term)
+					addAliases(entry, aliases, term)
+
 				}
 			}
+			}
 		}
+			
 	}
 
-	// Generate default aliases from obvious variations on
-	// the term names
-	for _, term := range terms {
-		words := camelcase.Split(term)
-		aliases[strings.Join(words, "")] = term
-		aliases[strings.Title(strings.Join(words, " "))] = term
-		aliases[strings.ToLower(strings.Join(words, " "))] = term
+	// Generate default aliases from the DWC term names themselves
+	for i := 1; i < 10; i++ {
+		fmt.Println()
 	}
+	for _, term := range terms {
+//		fmt.Println("running addAliases(",term,"aliases",term)
+
+	addAliases(term, aliases, term)
+}
 	return aliases
+}
+
+// addAliases is a helper function for getAliases. It takes a word in
+// camelCase and maps all obvious variations to the given aliases map
+func addAliases(word string, aliases map[string]string, term string) {
+words := camelcase.Split(word)
+	aliases[strings.Join(words, "")] = term
+	aliases[strings.Title(strings.Join(words, " "))] = term
+	aliases[strings.ToLower(strings.Join(words, " "))] = term
+//	fmt.Println(strings.Join(words, " "))
+	
+for _, word := range words {
+	aliases[word] = term
+	aliases[strings.ToLower(word)] = term
+//	fmt.Println(word)
+}
 }
 
 // exportDB exports its database argument to the file at the filename argument
