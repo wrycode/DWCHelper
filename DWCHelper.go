@@ -41,8 +41,14 @@ func main() {
 	exportDB(os.Args[2], db)
 	
 	aliases := getAliases(pullDWCTerms())
-	for alias, term := range aliases {
-		fmt.Println("Alias: ", alias, " term: ", term)
+	// for alias, term := range aliases {
+	// 	fmt.Println("Alias: ", alias, " term: ", term)
+	// }
+
+	for _, term := range pullDWCTerms() {
+		fmt.Println(term)
+		showAliases(term, aliases)
+		fmt.Println()
 	}
 
 //	fmt.Println(len(aliases))
@@ -154,7 +160,7 @@ func getAliases(terms []string) map[string]string {
 				for _, entry := range row[1:] {
 //					fmt.Println("running addAliases(",entry,"aliases",term)
 					addAliases(entry, aliases, term)
-
+					
 				}
 			}
 			}
@@ -182,13 +188,21 @@ words := camelcase.Split(word)
 	aliases[strings.Title(strings.Join(words, " "))] = term
 	aliases[strings.ToLower(strings.Join(words, " "))] = term
 //	fmt.Println(strings.Join(words, " "))
-	
-for _, word := range words {
-	aliases[word] = term
-	aliases[strings.ToLower(word)] = term
-//	fmt.Println(word)
 }
+
+// showAliases is a temporary function (for debugging) that shows all
+// aliases mapped to a term
+func showAliases(term string, aliases map[string]string) {
+	for key, value := range aliases {
+		if value == term {
+			fmt.Print(key,", ")
+		}
+	}
+	for _, word := range camelcase.Split(term) {
+		fmt.Print(word, ", ")
+	}
 }
+
 
 // exportDB exports its database argument to the file at the filename argument
 func exportDB(filename string, db database) {
