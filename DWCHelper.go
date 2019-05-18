@@ -29,6 +29,40 @@ func main() {
 	// Import database from file given as first command-line argument
 	db := importDB(os.Args[1])
 
+	// check for .settings file with the same name. If exists, run
+	// the "operation" functions with their saved arguments. If it
+	// doesn't exist, run the following helper functions which get
+	// info about how to run the operation functions, and save it
+	// in the .settings file
+
+	_, err := os.Open(os.Args[1] + ".settings")
+	if err == nil {
+	fmt.Println(`Using settings from previous run. To run with 
+clean options and redo the import process, please 
+delete`, os.Args[1] + ".settings", " and re-run DWCHelper...")
+		fmt.Println()
+
+		// first line is terms to remove;
+		// subsequent lines are aliases to new term names
+	} else {
+		removeUnusedHelper()
+		renameAliasesHelper()
+		renameOtherHelper()
+	}
+	
+	
+
+	// removeUnusedHelper()
+	//       removeUnused(termnames []string )
+
+	// renameAliasesHelper()
+	// renameAliases(newTerms [string]string )
+
+	// renameOtherHelper()
+	// renameOther(newTerms [string]string )
+
+	
+
 	// TODO (number is how many hours I'm expecting for each task)
 	// Type inference 4 CANCELLED - Type inference will need to be done in the data vis program, but data types are not part of DWC specification
 	// Import DWC terms 2 DONE 
@@ -37,22 +71,44 @@ func main() {
 	// Detect unused terms, optionally remove them 2 TODO
 	// Interactively check inferences, provide corrections 3? 4? FINAL STEP, TODO
 
+	
+
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
 	
-	aliases := getAliases(pullDWCTerms())
+//	aliases := getAliases(pullDWCTerms())
 	// for alias, term := range aliases {
 	// 	fmt.Println("Alias: ", alias, " term: ", term)
 	// }
 
-	for _, term := range pullDWCTerms() {
-		fmt.Println(term)
-		showAliases(term, aliases)
-		fmt.Println()
-	}
+	// for _, term := range pullDWCTerms() {
+	// 	fmt.Println(term)
+	// 	showAliases(term, aliases)
+	// 	fmt.Println()
+	// }
 
 //	fmt.Println(len(aliases))
 }
+
+// removeUnusedHelper() is the interactive helper function that sets
+// up the call to removeUnused() by asking for user input
+func removeUnusedHelper() {
+	fmt.Println("Dummy removeUnusedHelper function")
+}
+
+// renameAliasesHelper() is the interactive helper function that sets
+// up the call to renameAliases() by asking for user input
+func renameAliasesHelper() {
+	fmt.Println("Dummy removeAliasesHelper function")
+}
+
+// renameOtherHelper() is the interactive helper function that sets
+// up the call to renameOther() by asking for user input
+func renameOtherHelper() {
+	fmt.Println("Dummy renameOtherHelper function")
+}
+
+
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
 func importDB(filename string) database {
