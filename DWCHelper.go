@@ -48,6 +48,11 @@ func main() {
 
 		// remove terms
 		termsToRemove, err := r.Read()
+		if err != nil {
+			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
+			os.Exit(1)
+		}
+
 		for _, val := range termsToRemove {
 			db = removeTerm(val, db)
 		}
@@ -62,10 +67,9 @@ func main() {
 		}
 
 		for _, row := range rows {
-			DWCTerm := row[0]
-			for _, alias := range row[1:] {
-				db = rename(alias, DWCTerm, db)
-			}
+			alias := row[0]
+			DWCTerm := row[1]
+			db = rename(alias, DWCTerm, db)
 		}
 	}
 	fmt.Println(db.terms)
