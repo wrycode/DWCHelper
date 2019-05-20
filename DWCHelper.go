@@ -29,113 +29,66 @@ func main() {
 	// Import database from file given as first command-line argument
 	db := importDB(os.Args[1])
 
-	// check for .settings file with the same name. If exists, run
-	// the "operation" functions with their saved arguments. If it
-	// doesn't exist, run the following helper functions which get
-	// info about how to run the operation functions, and save it
-	// in the .settings file
+	// check for .settings file, and if it exists, run the three
+	// "operation" functions with those saved
+	// parameters. Otherwise, run the helper functions
 
-	_, err := os.Open(os.Args[1] + ".settings")
+	f, err := os.Open(os.Args[1] + ".settings")
 	if err == nil {
-	fmt.Println(`Using settings from previous run. To run with 
-clean options and redo the import process, please 
-delete`, os.Args[1] + ".settings", " and re-run DWCHelper...")
+		fmt.Println("Using settings from previous run. To run with")
+		fmt.Println("clean options and redo the import process, please")
+		fmt.Println("delete", os.Args[1] + ".settings", " and re-run DWCHelper...")
 		fmt.Println()
 
-		// first line is terms to remove;
-		// subsequent lines are aliases to new term names
-	} else {
-		removeUnusedHelper()
-		renameAliasesHelper()
-		renameOtherHelper()
+		r := csv.NewReader(f)
+		r.LazyQuotes = true
+		
+		// .settings file is not "square"
+		r.FieldsPerRecord = -1
+
+		// remove terms
+		termsToRemove, err := r.Read()
+		for _, val := range termsToRemove {
+			db = removeTerm(val, db)
+		}
+
+		// TODO remember to flush various writers
+
+		// rename the rest
+		rows, err := r.ReadAll()
+		if err != nil {
+			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
+			os.Exit(1)
+		}
+
+		for _, row := range rows {
+			DWCTerm := row[0]
+			for _, alias := range row[1:] {
+				db = rename(alias, DWCTerm, db)
+			}
+		}
 	}
-	
-	
-
-	// removeUnusedHelper()
-	//       removeUnused(termnames []string )
-
-	// renameAliasesHelper()
-	// renameAliases(newTerms [string]string )
-
-	// renameOtherHelper()
-	// renameOther(newTerms [string]string )
-
-	
-
-	// TODO (number is how many hours I'm expecting for each task)
-	// Type inference 4 CANCELLED - Type inference will need to be done in the data vis program, but data types are not part of DWC specification
-	// Import DWC terms 2 DONE 
-	// Import/generate DWC aliases 3 DONE
-	// DWC term inferences DONE
-	// Detect unused terms, optionally remove them 2 TODO
-	// Interactively check inferences, provide corrections 3? 4? FINAL STEP, TODO
-
 	fmt.Println(db.terms)
-	db = removeTerm("Specimen number", db)
-	fmt.Println()
-	fmt.Println(db.terms)
-	
-	
+
+	// else {
+// 		f, err := os.Create(os.Args[1] + ".settings")
+// 		var settings io.Writer
+// 		if err != nil {
+// 			fmt.Printf("Cannot save settings to '%s': %s\n", filename, err.Error())
+// 			fmt.Println("Proceeding without saving your conversion settings...")
+// 			settings = ioutil.Discard
+// 		} else {
+// 			settings = bufio.NewWriter(f)
+// 		}
+// 		removeHelper()
+// //		save to settings and then run remove() on the list
+// 		renameHelper()
+// //		save to settings and then run rename() on the list
+// 	}
 
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
-	
-//	aliases := getAliases(pullDWCTerms())
-	// for alias, term := range aliases {
-	// 	fmt.Println("Alias: ", alias, " term: ", term)
-	// }
 
-	// for _, term := range pullDWCTerms() {
-	// 	fmt.Println(term)
-	// 	showAliases(term, aliases)
-	// 	fmt.Println()
-	// }
-
-//	fmt.Println(len(aliases))
-}
-
-// removeUnusedHelper() is the interactive helper function that sets
-// up the call to removeUnused() by asking for user input
-func removeUnusedHelper() {
-	fmt.Println("Dummy removeUnusedHelper function")
-}
-
-// renameAliasesHelper() is the interactive helper function that sets
-// up the call to renameAliases() by asking for user input
-func renameAliasesHelper() {
-	fmt.Println("Dummy removeAliasesHelper function")
-}
-
-// renameOtherHelper() is the interactive helper function that sets
-// up the call to renameOther() by asking for user input
-func renameOtherHelper() {
-	fmt.Println("Dummy renameOtherHelper function")
-}
-
-// Index() returns the first index of the target string t, or -1 if no
-// match is found
-func Index(vs []string, t string) int {
-	for i, v := range vs {
-		if v == t {
-			return i
-		}
-	}
-	return -1
-}
-
-// removeTerm() removes a given term from the database's list of terms
-func removeTerm(term string, db database) database {
-	i := Index(db.terms, term)
-	length := len(db.terms)
-	if i == 0 {
-		db.terms = db.terms[1:]
-	} else if i == length {
-		db.terms = db.terms[:i-1]
-	} else if i > 0 {
-		db.terms = append(db.terms[:i - 1], db.terms[i+1])
-	}
-	return db
 }
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
@@ -147,6 +100,7 @@ func importDB(filename string) database {
 	}
 	defer f.Close()
 
+	// TODO do I need to close the reader?
 	r := csv.NewReader(f)
 	r.LazyQuotes = true
 	rows, err := r.ReadAll()
@@ -171,6 +125,65 @@ func importDB(filename string) database {
 		db.data[term] = temp
 	}
 	return db
+}
+
+// removeTerm removes a given term from the database's list of terms
+func removeTerm(term string, db database) database {
+
+	if Include(db.terms, term) {
+		fmt.Println("Removing",term)
+		
+		i := Index(db.terms, term)
+		length := len(db.terms)
+		if i == 0 {
+			db.terms = db.terms[1:]
+		} else if i == length - 1 {
+			db.terms = db.terms[:i-1]
+		} else {
+			db.terms = append(db.terms[:i - 1], db.terms[i + 1:]...)
+		}
+	}
+	return db
+}
+
+// removeHelper is the interactive helper function that returns a list
+// of terms to be removed
+func removeHelper(db database) []string {
+	// dummy
+	return make([]string, 2)
+	
+}
+
+
+// rename renames a term in a given database (including the new
+// mapping in the "data" field)
+func rename(oldName, newName string, db database) database {
+	fmt.Println("Renaming",oldName,"to",newName)
+	return db
+}
+
+// renameHelper is the interactive helper function that returns a map
+// of terms to their new names
+func renameHelper(db database) map[string]string {
+	// dummy
+	return make(map[string]string)
+}
+
+
+// Index returns the first index of the target string t, or -1 if no
+// match is found
+func Index(terms []string, s string) int {
+	for i, v := range terms {
+		if v == s {
+			return i
+		}
+	}
+	return -1
+}
+
+// Include returns true if the target string t is in the slice
+func Include(terms []string, term string) bool {
+	return Index(terms, term) >= 0
 }
 
 // pullDWCTerms grabs the current list of DWC Simple terms from their
