@@ -71,6 +71,11 @@ delete`, os.Args[1] + ".settings", " and re-run DWCHelper...")
 	// Detect unused terms, optionally remove them 2 TODO
 	// Interactively check inferences, provide corrections 3? 4? FINAL STEP, TODO
 
+	fmt.Println(db.terms)
+	db = removeTerm("Specimen number", db)
+	fmt.Println()
+	fmt.Println(db.terms)
+	
 	
 
 	// Export database to file given as second command-line argument
@@ -108,7 +113,30 @@ func renameOtherHelper() {
 	fmt.Println("Dummy renameOtherHelper function")
 }
 
+// Index() returns the first index of the target string t, or -1 if no
+// match is found
+func Index(vs []string, t string) int {
+	for i, v := range vs {
+		if v == t {
+			return i
+		}
+	}
+	return -1
+}
 
+// removeTerm() removes a given term from the database's list of terms
+func removeTerm(term string, db database) database {
+	i := Index(db.terms, term)
+	length := len(db.terms)
+	if i == 0 {
+		db.terms = db.terms[1:]
+	} else if i == length {
+		db.terms = db.terms[:i-1]
+	} else if i > 0 {
+		db.terms = append(db.terms[:i - 1], db.terms[i+1])
+	}
+	return db
+}
 
 // importDB imports a CSV file. It takes a filename as an argument and returns a database
 func importDB(filename string) database {
