@@ -29,11 +29,11 @@ func main() {
 	// Import database from file given as first command-line argument
 	db := importDB(os.Args[1])
 
-	// check for .settings file, and if it exists, run the three
-	// "operation" functions with those saved
-	// parameters. Otherwise, run the helper functions
+	// check for .settings file, if it exists, apply the saved
+	// settings.  Otherwise, run the helper functions
 
 	f, err := os.Open(os.Args[1] + ".settings")
+	defer f.Close()
 	if err == nil {
 		fmt.Println("Using settings from previous run. To run with")
 		fmt.Println("clean options and redo the import process, please")
@@ -71,24 +71,39 @@ func main() {
 			DWCTerm := row[1]
 			db = rename(alias, DWCTerm, db)
 		}
-	}
-	fmt.Println(db.terms)
+	} else {
+		// CSV writer to save the settings in the file
+		settingsFile, err := os.Create(os.Args[1] + ".settings")
+		var w *csv.Writer
+		if err != nil {
+			fmt.Printf("Cannot save settings to '%s': %s\n", os.Args[1] + ".settings", err.Error())
+			fmt.Println("Proceeding without saving your conversion settings...")
+			w = csv.NewWriter(ioutil.Discard)
+		} else {
+			w = csv.NewWriter(settingsFile)
+		}
 
-	// else {
-// 		f, err := os.Create(os.Args[1] + ".settings")
-// 		var settings io.Writer
-// 		if err != nil {
-// 			fmt.Printf("Cannot save settings to '%s': %s\n", filename, err.Error())
-// 			fmt.Println("Proceeding without saving your conversion settings...")
-// 			settings = ioutil.Discard
-// 		} else {
-// 			settings = bufio.NewWriter(f)
-// 		}
-// 		removeHelper()
-// //		save to settings and then run remove() on the list
-// 		renameHelper()
-// //		save to settings and then run rename() on the list
-// 	}
+		// remove terms
+		termsToRemove := removeHelper(db)
+		for _, val := range termsToRemove {
+			db = removeTerm(val, db)
+		}
+
+		// save removed terms
+		w.Write(termsToRemove)
+
+		// rename terms
+		rows := renameHelper(db)
+		for _, row := range rows {
+			alias := row[0]
+			DWCTerm := row[1]
+			db = rename(alias, DWCTerm, db)
+		}
+
+		// save renamed terms
+		w.WriteAll(rows)
+		w.Flush()
+	}
 
 	// Export database to file given as second command-line argument
 	exportDB(os.Args[2], db)
@@ -153,11 +168,8 @@ func removeTerm(term string, db database) database {
 // removeHelper is the interactive helper function that returns a list
 // of terms to be removed
 func removeHelper(db database) []string {
-	// dummy
-	return make([]string, 2)
-	
+	return []string{"Specimen number", "Comments"}
 }
-
 
 // rename renames a term in a given database (including the new
 // mapping in the "data" field)
@@ -168,18 +180,18 @@ func rename(oldName, newName string, db database) database {
 
 // renameHelper is the interactive helper function that returns a map
 // of terms to their new names
-func renameHelper(db database) map[string]string {
-	// dummy
-	return make(map[string]string)
+func renameHelper(db database) [][]string {
+	test := [][]string{ 
+		{"Catalogue number", "catalogNumber"},
+		{"Gnawing damage", "gnawingDamage"}}
+	return test
 }
-
-
 
 // pullDWCTerms grabs the current list of DWC Simple terms from their
 // Github repository into a []string
 func pullDWCTerms() []string {
 	// default list of terms:
-	termList := "type,modified,language,license,rightsHolder,accessRights,bibliographicCitation,references,institutionID,collectionID,datasetID,institutionCode,collectionCode,datasetName,ownerInstitutionCode,basisOfRecord,informationWithheld,dataGeneralizations,dynamicProperties,occurrenceID,catalogNumber,recordNumber,recordedBy,individualCount,organismQuantity,organismQuantityType,sex,lifeStage,reproductiveCondition,behavior,establishmentMeans,occurrenceStatus,preparations,disposition,associatedMedia,associatedReferences,associatedSequences,associatedTaxa,otherCatalogNumbers,occurrenceRemarks,organismID,organismName,organismScope,associatedOccurrences,associatedOrganisms,previousIdentifications,organismRemarks,materialSampleID,eventID,parentEventID,fieldNumber,eventDate,eventTime,startDayOfYear,endDayOfYear,year,month,day,verbatimEventDate,habitat,samplingProtocol,sampleSizeValue,sampleSizeUnit,samplingEffort,fieldNotes,eventRemarks,locationID,higherGeographyID,higherGeography,continent,waterBody,islandGroup,island,country,countryCode,stateProvince,county,municipality,locality,verbatimLocality,minimumElevationInMeters,maximumElevationInMeters,verbatimElevation,minimumDepthInMeters,maximumDepthInMeters,verbatimDepth,minimumDistanceAboveSurfaceInMeters,maximumDistanceAboveSurfaceInMeters,locationAccordingTo,locationRemarks,decimalLatitude,decimalLongitude,geodeticDatum,coordinateUncertaintyInMeters,coordinatePrecision,pointRadiusSpatialFit,verbatimCoordinates,verbatimLatitude,verbatimLongitude,verbatimCoordinateSystem,verbatimSRS,footprintWKT,footprintSRS,footprintSpatialFit,georeferencedBy,georeferencedDate,georeferenceProtocol,georeferenceSources,georeferenceVerificationStatus,georeferenceRemarks,geologicalContextID,earliestEonOrLowestEonothem,latestEonOrHighestEonothem,earliestEraOrLowestErathem,latestEraOrHighestErathem,earliestPeriodOrLowestSystem,latestPeriodOrHighestSystem,earliestEpochOrLowestSeries,latestEpochOrHighestSeries,earliestAgeOrLowestStage,latestAgeOrHighestStage,lowestBiostratigraphicZone,highestBiostratigraphicZone,lithostratigraphicTerms,group,formation,member,bed,identificationID,identificationQualifier,typeStatus,identifiedBy,dateIdentified,identificationReferences,identificationVerificationStatus,identificationRemarks,taxonID,scientificNameID,acceptedNameUsageID,parentNameUsageID,originalNameUsageID,nameAccordingToID,namePublishedInID,taxonConceptID,scientificName,acceptedNameUsage,parentNameUsage,originalNameUsage,nameAccordingTo,namePublishedIn,namePublishedInYear,higherClassification,kingdom,phylum,class,order,family,genus,subgenus,specificEpithet,infraspecificEpithet,taxonRank,verbatimTaxonRank,scientificNameAuthorship,vernacularName,nomenclaturalCode,taxonomicStatus,nomenclaturalStatus,taxonRemarks"
+	termList := "type,modified,language,license,rightsHolder,accessRights,bibliographicCitation,references,institutionID,collectionID,datasetID,institutionCode,collectionCode,datasetName,ownerInstitutionCode,basisOfRecord,informationWithheld,dataGeneralizations,dynamicProperties,occurrenceID,catalogNumber,recordNumber,recordedBy,individualCount,organismQuantity,organismQuantityType,sex,lifeStage,reproductiveCondition,behavior,establishmentMeans,occurrenceStatus,preparations,disposition,associatedMedia,associatedReferences,associatedSequences,associatedTaxa,otherCatalogNumbers,occurrenceRemarks,organismID,organismName,organismScope,associatedOccurrences,associatedOrganisms,previousIdentifications,organismRemarks,materialSampleID,eventID,parentEventID,fieldNumber,eventDate,eventTime,startDayOfYear,endDayOfYear,year,month,day,verbatimEventDate,habitat,samplingProtocol,sampleSizeValue,sampleSizeUnit,samplingEffort,fieldNotes,eventRemarks,locationID,higherGeographyID,higherGeography,continent,waterBody,islandGroup,island,country,countryCode,stateProvince,county,municipality,locality,verbatimLocality,minimumElevationInMeters,maximumElevationInMeters,verbatimElevation,minimumDepthInMeters,maximumDepthInMeters,verbatimDepth,minimumDistanceAboveSurfaceInMeters,maximumDistanceAboveSurfaceInMeters,locationAccordingTo,locationRemarks,decimalLatitude,decimalLongitude,geodeticDatum,coordinateUncertaintyInMeters,coordinatePrecision,pointRadiusSpatialFit,verbatimCoordinates,verbatimLatitude,verbatimLongitude,verbatimCoordinateSystem,verbatimSRS,footprintWKT,footprintSRS,footprintSpatialFit,georeferencedBy,georeferencedDate,georeferenceProtocol,georeferenceSources,georeferenceVerificationStatus,georeferenceRemarks,geologicalContextID,earliestEonOrLowestEonothem,latestEonOrHighestEonothem,earliestEraOrLowestErathem,latestEraOrHighestErathem,earliestPeriodOrLowestSystem,latestPeriodOrHighestSystem,earliestEpochOrLowestSeries,latestEpochOrHighestSeries,earliestAgeOrLowestStage,latestAgeOrHighestStage,lowestBiostratigraphicZone,highestBiostratigraphicZone,lithostratigraphicTerms,group,formation,member,bed,identificationID,identificationQualifier,typeStatus,identifiedBy,dateIdentified,identificationReferences,identificationVerificationStatus,identificationRemarks,taxonID,scientificNameID,acceptedNameUsageID,parentNameUsageID,originalNameUsageID,nameAccordingToID,namePublishedInID,taxonConceptID,scientificName,acceptedNameUsage,parentNameUsage,originalNameUsage,nameAccordingTo,namePublishedIn,namePublishedInYear,higherClassification,kingdom,phylum,class,order,family,genus,subgenus,specificEpithet,infraspecificEpithet,taxonRank,verbatimTaxonRank,scientificNameAuthorship,vernacularName,nomenclaturalCode,taxonomicStatus,nomenclaturalStatus,taxonomy's"
 
 	// Try to pull the csv termlist from online
 	resp, err := http.Get(termURL)
@@ -288,7 +300,6 @@ func showAliases(term string, aliases map[string]string) {
 		fmt.Print(word, ", ")
 	}
 }
-
 
 // exportDB exports its database argument to the file at the filename argument
 func exportDB(filename string, db database) {
