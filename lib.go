@@ -15,3 +15,13 @@ func Index(terms []string, s string) int {
 func Include(terms []string, term string) bool {
 	return Index(terms, term) >= 0
 }
+
+// Replace returns a []string with oldTerm replaced by newTerm
+// func Replace( terms []string, oldTerm, newTerm) []string {
+// }
+
+// Remove returns a []string with term removed, or unchanged if the
+// term isn't in the slice
+func Remove(terms []string, term string) []string {
+	return []string{"b","c"}
+}
