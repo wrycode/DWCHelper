@@ -20,8 +20,17 @@ func Include(terms []string, term string) bool {
 // func Replace( terms []string, oldTerm, newTerm) []string {
 // }
 
-// Remove returns a []string with term removed, or unchanged if the
-// term isn't in the slice
+// Remove returns a []string with all instances of term removed, or
+// unchanged if the term isn't in the slice
 func Remove(terms []string, term string) []string {
-	return []string{"b","c"}
+	var result []string
+	for _, t := range terms {
+		if t != term {
+			result = append(result, t)
+		}
+	}
+	if result != nil {
+		return result
+	}
+	return []string{}
 }

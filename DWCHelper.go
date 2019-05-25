@@ -150,16 +150,7 @@ func importDB(filename string) database {
 func removeTerm(term string, db database) database {
 	if Include(db.terms, term) {
 		fmt.Println("Removing",term)
-		
-		i := Index(db.terms, term)
-		length := len(db.terms)
-		if i == 0 {
-			db.terms = db.terms[1:]
-		} else if i == length - 1 {
-			db.terms = db.terms[:i-1]
-		} else {
-			db.terms = append(db.terms[:i - 1], db.terms[i + 1:]...)
-		}
+		db.terms = Remove(db.terms, term)
 	}
 	return db
 }
