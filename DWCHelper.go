@@ -69,7 +69,7 @@ func main() {
 		for _, row := range rows {
 			alias := row[0]
 			DWCTerm := row[1]
-			db = rename(alias, DWCTerm, db)
+			db = renameTerm(alias, DWCTerm, db)
 		}
 	} else {
 		// CSV writer to save the settings in the file
@@ -97,7 +97,7 @@ func main() {
 		for _, row := range rows {
 			alias := row[0]
 			DWCTerm := row[1]
-			db = rename(alias, DWCTerm, db)
+			db = renameTerm(alias, DWCTerm, db)
 		}
 
 		// save renamed terms
@@ -148,7 +148,6 @@ func importDB(filename string) database {
 
 // removeTerm removes a given term from the database's list of terms
 func removeTerm(term string, db database) database {
-
 	if Include(db.terms, term) {
 		fmt.Println("Removing",term)
 		
@@ -168,13 +167,28 @@ func removeTerm(term string, db database) database {
 // removeHelper is the interactive helper function that returns a list
 // of terms to be removed
 func removeHelper(db database) []string {
+
+	fmt.Println(`First we will clean up your list of terms. 
+The following terms are either empty (no data), or the value is the same for every 
+specimen:`)
+
+fmt.Println("Would you like to delete them?")
+	fmt.Println("0: no, don't delete any terms")
+	fmt.Println("1: yes, delete all of the above terms")
+	fmt.Println("2: delete some terms (let me choose)")
+
+
+	
+	
 	return []string{"Specimen number", "Comments"}
 }
 
-// rename renames a term in a given database (including the new
+// renameTerm renames a term in a given database (including the new
 // mapping in the "data" field)
-func rename(oldName, newName string, db database) database {
+func renameTerm(oldName, newName string, db database) database {
 	fmt.Println("Renaming",oldName,"to",newName)
+	db.data[newName] = db.data[oldName]
+	
 	return db
 }
 
