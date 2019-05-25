@@ -30,3 +30,27 @@ func TestRemove (t *testing.T) {
 		}
 	}
 }
+
+func TestRename (t *testing.T) {
+	var renameTests = []struct {
+		terms []string // original slice
+		oldTerm string // term to rename
+		newTerm string // new name
+		out []string // returned slice
+	}{
+		{[]string{"a","b","c"}, "a","b", []string{"b","b","c"}},
+		{[]string{"a","b","c"}, "x","b", []string{"a","b","c"}},
+		{[]string{"a","b","b","c"}, "b","x", []string{"a","x","x","c"}},
+		{[]string{"a"}, "a", "", []string{""}},
+		{[]string{}, "a","x", []string{}},
+	}
+
+	for _, tt := range renameTests {
+		result, _ := json.Marshal(Rename(tt.terms,tt.oldTerm,tt.newTerm))
+		expected, _ := json.Marshal(tt.out)
+		if string(result) != string(expected) {
+			t.Errorf("Rename(%v, %v, %v): expected %v, got %v", tt.terms, tt.oldTerm,tt.newTerm, string(expected), string(result))
+		}
+	}
+	
+}

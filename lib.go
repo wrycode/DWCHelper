@@ -34,3 +34,13 @@ func Remove(terms []string, term string) []string {
 	}
 	return []string{}
 }
+
+// Rename renames all occurrences of oldTerm to newTerm in terms
+func Rename(terms []string, oldTerm, newTerm string) []string {
+	for i, t := range terms {
+		if t == oldTerm {
+			terms[i] = newTerm
+		}
+	}
+	return terms
+}
