@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"bufio"
 	"fmt"
+	"time"
+	"strings"
 )
 // Index returns the first index of the target string t, or -1 if no
 // match is found
@@ -82,5 +84,29 @@ func printStringSlice(terms []string) {
 		fmt.Printf("\"%v\" \n",v)
 	}
 	fmt.Println()
+}
+
+// Prompt prints out the given string, and asks for user confirmation
+// to continue is ask is set to true
+func Prompt(ask bool, s string) {
+	b := bufio.NewScanner(strings.NewReader(s))
+		time.Sleep(100 * time.Millisecond)
+
+
+	for b.Scan() {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println(b.Text())
+	}
+	if ask {
+		r := bufio.NewReader(os.Stdin)
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println("Press Enter to continue...")
+		for {
+			_, err := r.Peek(1) 
+			if err == nil {
+				return
+			}
+		}
+	}
 }
 

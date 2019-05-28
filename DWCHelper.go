@@ -167,9 +167,10 @@ func removeHelper(db database) []string {
 		}
 	}
 	
-	fmt.Println(`First we will clean up your list of terms. 
+	Prompt(true,`First we will clean up your list of terms. 
 The following terms are either empty (no data), or the value is the same for every 
 specimen:`)
+
 //asff
 printStringSlice(termsToRemove)
 	fmt.Println("Would you like to delete them?")
