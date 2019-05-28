@@ -4,6 +4,7 @@ import (
 
 	"testing"
 	"encoding/json"
+	"strings"
 )
 
 func TestRemove (t *testing.T) {
@@ -53,4 +54,28 @@ func TestRename (t *testing.T) {
 		}
 	}
 	
+}
+
+func TestInputNumber(t *testing.T) {
+	var inputNumberTests = []struct {
+		first int // lower limit
+		second int //upper limit
+		choice string // user input
+		result int // number returned
+	}{
+		{0, 5, "5", 5},
+		{0, 5, "0", 0},
+		{0, 5, "a\n4", 4},
+		{0, 5, "asaf\nasf\n4", 4},
+		{0, 5, "6\n0", 0},
+		{0, 5, "-400\n0", 0},
+	}
+
+	for _, test := range inputNumberTests {
+		reader := strings.NewReader(test.choice)
+		result := inputNumber(test.first,test.second,reader)
+		if result != test.result {
+			t.Errorf("inputNumber(%v,%v) with user input: %v \n got %v, expected %v",test.first,test.second,test.choice,result,test.result)
+		}
+	}
 }

@@ -1,5 +1,12 @@
 package main
 
+import (
+	"io"
+	"os"
+	"strconv"
+	"bufio"
+	"fmt"
+)
 // Index returns the first index of the target string t, or -1 if no
 // match is found
 func Index(terms []string, s string) int {
@@ -43,4 +50,27 @@ func Rename(terms []string, oldTerm, newTerm string) []string {
 		}
 	}
 	return terms
+}
+
+// inputNumber returns an int between the given upper and lower
+// limits, taken from the io.Reader argument (such as os.Stdin). If
+// the input is invalid, it returns 0
+func inputNumber (first int, second int, r io.Reader) int {
+	fmt.Printf("Your choice? (%v-%v): ",first,second)
+	b := bufio.NewScanner(r)
+	for b.Scan() {
+		n, err := strconv.Atoi(b.Text())
+		if err == nil {
+			if first <= n && n <= second {
+				fmt.Println()
+				return n
+			}
+		}
+		fmt.Printf("Please enter a valid number between %v and %v and hit Enter:\n", first, second)
+	}
+	if err := b.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+	fmt.Println()
+	return 0
 }
