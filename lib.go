@@ -25,10 +25,6 @@ func Include(terms []string, term string) bool {
 	return Index(terms, term) >= 0
 }
 
-// Replace returns a []string with oldTerm replaced by newTerm
-// func Replace( terms []string, oldTerm, newTerm) []string {
-// }
-
 // Remove returns a []string with all instances of term removed, or
 // unchanged if the term isn't in the slice
 func Remove(terms []string, term string) []string {
@@ -58,7 +54,7 @@ func Rename(terms []string, oldTerm, newTerm string) []string {
 // limits, taken from the io.Reader argument (such as os.Stdin). If
 // the input is invalid, it returns 0
 func inputNumber (first int, second int, r io.Reader) int {
-	fmt.Printf("Your choice? (%v-%v): ",first,second)
+	fmt.Printf("Your choice? (%v to %v): ",first,second)
 	b := bufio.NewScanner(r)
 	for b.Scan() {
 		n, err := strconv.Atoi(b.Text())

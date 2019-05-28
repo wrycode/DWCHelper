@@ -12,7 +12,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-//	"bufio"
+	"strconv"
+	//	"bufio"
 	"github.com/fatih/camelcase"
 )
 
@@ -53,7 +54,7 @@ func main() {
 			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
 			os.Exit(1)
 		}
-                      
+		
 		for _, val := range termsToRemove {
 			db = removeTerm(val, db)
 		}
@@ -150,7 +151,7 @@ func importDB(filename string) database {
 // removeTerm removes a given term from the database's list of terms
 func removeTerm(term string, db database) database {
 	if Include(db.terms, term) {
-//		fmt.Println("Removing",term)
+		fmt.Println("Removing",term)
 		db.terms = Remove(db.terms, term)
 	}
 	return db
@@ -162,30 +163,77 @@ func removeHelper(db database) []string {
 	var termsToRemove []string
 
 	for _, term := range db.terms {
-		if notAllSame(db.data[term].values) {
+		if !notAllSame(db.data[term].values) {
 			termsToRemove = append(termsToRemove, term)
 		}
 	}
 	
-	Prompt(true,`First we will clean up your list of terms. 
+	Prompt(false,`First we will clean up your list of terms. 
 The following terms are either empty (no data), or the value is the same for every 
 specimen:`)
 
-//asff
-printStringSlice(termsToRemove)
-	fmt.Println("Would you like to delete them?")
-	fmt.Println("0: no, don't delete any terms")
-	fmt.Println("1: yes, delete all of the above terms")
-	fmt.Println("2: delete some terms (let me choose)")
+PrintHLine(1)
+
+	//asff
+	fmt.Println()
+	printStringSlice(termsToRemove)
+	fmt.Println()
+	PrintHLine(1)
+	
+	Prompt(false, `Would you like to delete them?
+0: no, don't delete any terms
+1: yes, delete all of the above terms
+2: delete some terms (let me choose)`)
+
 	switch n := inputNumber(0,2, os.Stdin); n {
 	case 0:
-		fmt.Println("You chose 0")
-	case 1:
-		fmt.Println("You chose 1")
+		return []string{}
 	case 2:
-		fmt.Println("You chose 2")
+		choices := make([]bool, len(termsToRemove))
+		PrintHLine(1)
+
+		Prompt(false,`Which terms would you like to remove?
+1 through ` + strconv.Itoa(len(termsToRemove)) + ": select a term" + `
+-1: done entering terms
+0: show which terms are currently selected for removal`)
+
+
+		done := false
+		PrintHLine(1)
+
+		for done == false {
+			switch n := inputNumber(-1, len(termsToRemove), os.Stdin); n {
+			case 0:
+				for i, v := range termsToRemove {
+					fmt.Printf("%v: \"%v\" ",i+1,v)
+					if choices[i] == true {
+						fmt.Printf(" <===REMOVE ")
+					}
+					if i % 3 == 0 {
+						fmt.Println()
+					}
+				}
+				fmt.Println()
+			case -1:
+				done = true
+			default: if choices[n- 1] == false {
+				choices[n - 1] = true
+			} else { choices[n - 1] = false}
+				
+			}
+		}
+
+		var chosenTerms []string
+		for i, b := range choices {
+			if b {
+				chosenTerms = append(chosenTerms, termsToRemove[i])
+			}
+		}
+		termsToRemove = chosenTerms
 	}
-	return []string{"Specimen number", "Comments"}
+	return termsToRemove
+
+
 }
 
 // renameTerm renames a term in a given database (including the new
@@ -261,7 +309,7 @@ func getAliases(terms []string) map[string]string {
 		if err != nil {
 	 		fmt.Println("Error: cannot read contents of aliasURL", err.Error())
 	 		fmt.Println("Defaulting to an automatically generated alias list...")
-	
+			
 	 	} else { // Try to parse using csv
 			r := csv.NewReader(strings.NewReader(string(contents)))
 			r.FieldsPerRecord = -1 // uneven fields numbers allowed
@@ -271,20 +319,20 @@ func getAliases(terms []string) map[string]string {
 				fmt.Println("Defaulting to an automatically generated alias list...")
 			} else {
 
-			// If there were no errors pulling the aliases
-			// from the online CSV file, add obvious
-			// variations of the alias to the aliases map
-			for _, row := range rows {
-				term := row[0]
-				for _, entry := range row[1:] {
-//					fmt.Println("running addAliases(",entry,"aliases",term)
-					addAliases(entry, aliases, term)
-					
+				// If there were no errors pulling the aliases
+				// from the online CSV file, add obvious
+				// variations of the alias to the aliases map
+				for _, row := range rows {
+					term := row[0]
+					for _, entry := range row[1:] {
+						//					fmt.Println("running addAliases(",entry,"aliases",term)
+						addAliases(entry, aliases, term)
+						
+					}
 				}
 			}
-			}
 		}
-			
+		
 	}
 
 	// Generate default aliases from the DWC term names themselves
@@ -292,21 +340,21 @@ func getAliases(terms []string) map[string]string {
 		fmt.Println()
 	}
 	for _, term := range terms {
-//		fmt.Println("running addAliases(",term,"aliases",term)
+		//		fmt.Println("running addAliases(",term,"aliases",term)
 
-	addAliases(term, aliases, term)
-}
+		addAliases(term, aliases, term)
+	}
 	return aliases
 }
 
 // addAliases is a helper function for getAliases. It takes a word in
 // camelCase and maps all obvious variations to the given aliases map
 func addAliases(word string, aliases map[string]string, term string) {
-words := camelcase.Split(word)
+	words := camelcase.Split(word)
 	aliases[strings.Join(words, "")] = term
 	aliases[strings.Title(strings.Join(words, " "))] = term
 	aliases[strings.ToLower(strings.Join(words, " "))] = term
-//	fmt.Println(strings.Join(words, " "))
+	//	fmt.Println(strings.Join(words, " "))
 }
 
 // showAliases is a temporary function (for debugging) that shows all
