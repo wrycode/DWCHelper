@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+//	"bufio"
 	"github.com/fatih/camelcase"
 )
 
@@ -52,7 +53,7 @@ func main() {
 			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
 			os.Exit(1)
 		}
-
+                      
 		for _, val := range termsToRemove {
 			db = removeTerm(val, db)
 		}
@@ -149,7 +150,7 @@ func importDB(filename string) database {
 // removeTerm removes a given term from the database's list of terms
 func removeTerm(term string, db database) database {
 	if Include(db.terms, term) {
-		fmt.Println("Removing",term)
+//		fmt.Println("Removing",term)
 		db.terms = Remove(db.terms, term)
 	}
 	return db
@@ -158,28 +159,42 @@ func removeTerm(term string, db database) database {
 // removeHelper is the interactive helper function that returns a list
 // of terms to be removed
 func removeHelper(db database) []string {
+	var termsToRemove []string
 
+	for _, term := range db.terms {
+		if notAllSame(db.data[term].values) {
+			termsToRemove = append(termsToRemove, term)
+		}
+	}
+	
 	fmt.Println(`First we will clean up your list of terms. 
 The following terms are either empty (no data), or the value is the same for every 
 specimen:`)
-
-fmt.Println("Would you like to delete them?")
+//asff
+printStringSlice(termsToRemove)
+	fmt.Println("Would you like to delete them?")
 	fmt.Println("0: no, don't delete any terms")
 	fmt.Println("1: yes, delete all of the above terms")
 	fmt.Println("2: delete some terms (let me choose)")
-
-
-	
-	
+	switch n := inputNumber(0,2, os.Stdin); n {
+	case 0:
+		fmt.Println("You chose 0")
+	case 1:
+		fmt.Println("You chose 1")
+	case 2:
+		fmt.Println("You chose 2")
+	}
 	return []string{"Specimen number", "Comments"}
 }
 
 // renameTerm renames a term in a given database (including the new
 // mapping in the "data" field)
 func renameTerm(oldName, newName string, db database) database {
-	fmt.Println("Renaming",oldName,"to",newName)
-	db.data[newName] = db.data[oldName]
-	
+	if Include(db.terms, oldName) {
+		fmt.Println("Renaming",oldName,"to",newName)
+		db.data[newName] = db.data[oldName]
+		db.terms = Rename(db.terms, oldName,newName)
+	}
 	return db
 }
 

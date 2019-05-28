@@ -74,3 +74,13 @@ func inputNumber (first int, second int, r io.Reader) int {
 	fmt.Println()
 	return 0
 }
+
+// printStringSlice prints a []string, surrounding each string with
+// quotes
+func printStringSlice(terms []string) {
+	for _, v := range terms {
+		fmt.Printf("\"%v\" \n",v)
+	}
+	fmt.Println()
+}
+
