@@ -80,8 +80,11 @@ func inputNumber (first int, second int, r io.Reader) int {
 // printStringSlice prints a []string, surrounding each string with
 // quotes
 func printStringSlice(terms []string) {
-	for _, v := range terms {
-		fmt.Printf("\"%v\" \n",v)
+	for i, v := range terms {
+		fmt.Printf("\"%v\" ",v)
+		if i % 3 == 0 {
+			fmt.Println()
+		}
 	}
 	fmt.Println()
 }
@@ -110,3 +113,9 @@ func Prompt(ask bool, s string) {
 	}
 }
 
+// PrintHLine draws one or more horizontal lines
+func PrintHLine(i int) {
+	for n := 0; n < i; n = n +1 {
+		fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+	}
+}
