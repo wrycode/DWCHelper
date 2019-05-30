@@ -86,7 +86,6 @@ func printStringSlice(terms []string) {
 			fmt.Println()
 		}
 	}
-	fmt.Println()
 }
 
 // Prompt prints out the given string, and asks for user confirmation
@@ -160,4 +159,13 @@ func stringIsVariation(s string, t string) bool {
 	}
 
 	return false
+}
+
+// inputTerm gets a new term from the user
+func inputTerm(message string, r io.Reader) string {
+	fmt.Print(message)
+	b := bufio.NewScanner(r)
+	b.Scan()
+	fmt.Println()
+	return b.Text()
 }

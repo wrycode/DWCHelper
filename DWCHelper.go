@@ -170,23 +170,25 @@ func removeHelper(db database) []string {
 			termsToRemove = append(termsToRemove, term)
 		}
 	}
+	PrintHLine(1)
 	
 	Prompt(false,`First we will clean up your list of terms. 
-The following terms are either empty (no data), or the value is the same for every 
-specimen:`)
+For the following terms , the values are either empty (no data), or the value is the same 
+for every specimen:`)
 
-PrintHLine(1)
+	PrintHLine(1)
 
 	//asff
 	fmt.Println()
 	printStringSlice(termsToRemove)
 	fmt.Println()
-	PrintHLine(1)
 	
+	PrintHLine(1)
 	Prompt(false, `Would you like to delete them?
 0: no, don't delete any terms
 1: yes, delete all of the above terms
 2: delete some terms (let me choose)`)
+	PrintHLine(1)
 
 	//	switch n := inputNumber(0,2, os.Stdin); n {
 	switch 1 {
@@ -235,16 +237,15 @@ PrintHLine(1)
 		}
 		termsToRemove = chosenTerms
 	}
+	fmt.Println()
 	return termsToRemove
-
-
 }
 
 // renameTerm renames a term in a given database (including the new
 // mapping in the "data" field)
 func renameTerm(oldName, newName string, db database) database {
 	if Include(db.terms, oldName) {
-		fmt.Println("Renaming",oldName,"to",newName)
+		fmt.Printf("Renaming \"%v\" to \"%v\"\n",oldName,newName)
 		db.data[newName] = db.data[oldName]
 		db.terms = Rename(db.terms, oldName,newName)
 	}
@@ -254,21 +255,23 @@ func renameTerm(oldName, newName string, db database) database {
 // renameHelper is the interactive helper function that returns a 2D
 // array that maps terms to their new names
 func renameHelper(db database) [][]string {
-//	var termsAndNewTerms [][]string
+	var termsAndNewTerms [][]string
 	var suggestions [][]string
 	DWCTerms := pullDWCTerms()
-	PrintHLine(3)
-	
-	Prompt(true,`Next, let's look for terms that may match up with the 
-Darwin Core standard. We will try to automatically detect
-possible aliases in a minute, but you are welcome to look at 
-the list of terms at https://dwc.tdwg.org/terms/ first`)
+	PrintHLine(1)
+	Prompt(false,`These are the remaining terms. You can select a term by its 
+number and rename it. Some terms have suggestions for names that 
+have been  used by others. It may be helpful to refer to  the list
+of terms at https://dwc.tdwg.org/terms/ while you do this.
+(Pulling suggestions may take a few moments)`)
+	PrintHLine(1)
 
 	// generate suggestions for each term
+
 	for i, term := range db.terms {
 		// blank suggestions entry 
 		suggestions = append(suggestions, []string{term})
-
+		termsAndNewTerms = append(termsAndNewTerms, []string{term})
 		// add DWCTerm if term may be a variation of it
 		for _, DWCTerm := range DWCTerms {
 			if stringIsVariation(term, DWCTerm) {
@@ -286,9 +289,54 @@ the list of terms at https://dwc.tdwg.org/terms/ first`)
 			}
 		}
 	}
-	//	fmt.Println(suggestions)
+
+
+	for i, row := range termsAndNewTerms {
+		fmt.Printf(" %v: \"%v\" ",i+1, row[0])
+		if len(termsAndNewTerms[i]) > 1 {
+			fmt.Printf(" ======> %v",termsAndNewTerms[i][1])
+		}
+		if len(suggestions[i]) > 1 {
+			fmt.Printf("(Suggestions: ")
+			for _, suggestion := range suggestions[i][1:] {
+				fmt.Printf("\"%v\" ",suggestion)
+			}
+			fmt.Printf(")")
+		}
+		fmt.Println()
+	}
+	done := false
+	for done == false {
+		fmt.Printf("-1: Done renaming | 0: list terms again | %v - %v: select term \n",1,len(termsAndNewTerms))
+		switch n := inputNumber(-1, len(termsAndNewTerms), os.Stdin); n {
+		case -1 : done = true
+		case 0 :
+			for i, row := range termsAndNewTerms {
+				fmt.Printf(" %v: \"%v\" ",i+1, row[0])
+				if len(termsAndNewTerms[i]) > 1 {
+					fmt.Printf(" ======> %v",termsAndNewTerms[i][1])
+				}
+				if len(suggestions[i]) > 1 {
+					fmt.Printf("(Suggestions: ")
+					for _, suggestion := range suggestions[i][1:] {
+						fmt.Printf("\"%v\" ",suggestion)
+					}
+					fmt.Printf(")")
+				}
+				fmt.Println()
+			}
+		default:
+			if len(termsAndNewTerms[n-1]) > 1 {
+				termsAndNewTerms[n - 1][1] = inputTerm("Please enter the new name for " + termsAndNewTerms[n - 1][0] + ": ", os.Stdin)
+			} else {
+				termsAndNewTerms[n - 1] = append(termsAndNewTerms[n - 1], 
+					inputTerm("Please enter the new name for \"" + termsAndNewTerms[n - 1][0] + "\": ", os.Stdin))
+			}
+		}
+	}
+	
 	var test [][]string
-	for _, row := range suggestions {
+	for _, row := range termsAndNewTerms {
 		if len(row) >= 2 {
 			test = append(test, row)
 		}
