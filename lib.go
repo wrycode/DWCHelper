@@ -92,11 +92,11 @@ func printStringSlice(terms []string) {
 // to continue is ask is set to true
 func Prompt(ask bool, s string) {
 	b := bufio.NewScanner(strings.NewReader(s))
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
 
 
 	for b.Scan() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
 		fmt.Println(b.Text())
 	}
 	if ask {

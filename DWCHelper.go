@@ -190,8 +190,7 @@ for every specimen:`)
 2: delete some terms (let me choose)`)
 	PrintHLine(1)
 
-	//	switch n := inputNumber(0,2, os.Stdin); n {
-	switch 1 {
+	switch n := inputNumber(0,2, os.Stdin); n {
 	case 0:
 		return []string{}
 	case 2:
@@ -252,6 +251,37 @@ func renameTerm(oldName, newName string, db database) database {
 	return db
 }
 
+// showTerms displays the list of terms along with some associated
+// information for renameHelper
+func showTerms(terms [][]string, suggestions [][]string) {
+	var b strings.Builder
+	b.Grow(len(terms) * 2)
+	c := 0
+	for i, row := range terms {
+		if c >= 3 {
+			fmt.Fprintf(&b, "\n")
+			c = 0
+		}
+		fmt.Fprintf(&b, " %v: \"%v\" ",i+1, row[0])
+		if len(terms[i]) > 1 {
+		
+			fmt.Fprintf(&b, " ======> %v ",terms[i][1])
+		}
+		if len(suggestions[i]) > 1 {
+			c = c + 4
+			fmt.Fprintf(&b, "(Suggestions: ")
+			for _, suggestion := range suggestions[i][1:] {
+				fmt.Fprintf(&b, "\"%v\" ",suggestion)
+			}
+			fmt.Fprintf(&b, ")")
+		} else {
+
+			c = c + 1
+		}
+	}
+	Prompt(false, b.String())
+}
+
 // renameHelper is the interactive helper function that returns a 2D
 // array that maps terms to their new names
 func renameHelper(db database) [][]string {
@@ -262,13 +292,12 @@ func renameHelper(db database) [][]string {
 	Prompt(false,`These are the remaining terms. You can select a term by its 
 number and rename it. Some terms have suggestions for names that 
 have been  used by others. It may be helpful to refer to  the list
-of terms at https://dwc.tdwg.org/terms/ while you do this.
-(Pulling suggestions may take a few moments)`)
+of terms at https://dwc.tdwg.org/terms/ while you do this.`)
 	PrintHLine(1)
 
 	// generate suggestions for each term
-
 	for i, term := range db.terms {
+
 		// blank suggestions entry 
 		suggestions = append(suggestions, []string{term})
 		termsAndNewTerms = append(termsAndNewTerms, []string{term})
@@ -281,6 +310,7 @@ of terms at https://dwc.tdwg.org/terms/ while you do this.
 
 		// add alias from pre-generated aliases.csv file if
 		// term may be a variation of it
+		go func(){
 		for _, row := range pullAliases() {
 			for _, aliasTerm := range row[1:] {
 				if stringIsVariation(term, aliasTerm) {
@@ -288,49 +318,27 @@ of terms at https://dwc.tdwg.org/terms/ while you do this.
 				}
 			}
 		}
+		}()
 	}
 
-
-	for i, row := range termsAndNewTerms {
-		fmt.Printf(" %v: \"%v\" ",i+1, row[0])
-		if len(termsAndNewTerms[i]) > 1 {
-			fmt.Printf(" ======> %v",termsAndNewTerms[i][1])
-		}
-		if len(suggestions[i]) > 1 {
-			fmt.Printf("(Suggestions: ")
-			for _, suggestion := range suggestions[i][1:] {
-				fmt.Printf("\"%v\" ",suggestion)
-			}
-			fmt.Printf(")")
-		}
-		fmt.Println()
-	}
+	showTerms(termsAndNewTerms, suggestions)
+	
 	done := false
 	for done == false {
 		fmt.Printf("-1: Done renaming | 0: list terms again | %v - %v: select term \n",1,len(termsAndNewTerms))
 		switch n := inputNumber(-1, len(termsAndNewTerms), os.Stdin); n {
 		case -1 : done = true
 		case 0 :
-			for i, row := range termsAndNewTerms {
-				fmt.Printf(" %v: \"%v\" ",i+1, row[0])
-				if len(termsAndNewTerms[i]) > 1 {
-					fmt.Printf(" ======> %v",termsAndNewTerms[i][1])
-				}
-				if len(suggestions[i]) > 1 {
-					fmt.Printf("(Suggestions: ")
-					for _, suggestion := range suggestions[i][1:] {
-						fmt.Printf("\"%v\" ",suggestion)
-					}
-					fmt.Printf(")")
-				}
-				fmt.Println()
-			}
+			showTerms(termsAndNewTerms, suggestions)
 		default:
 			if len(termsAndNewTerms[n-1]) > 1 {
 				termsAndNewTerms[n - 1][1] = inputTerm("Please enter the new name for " + termsAndNewTerms[n - 1][0] + ": ", os.Stdin)
 			} else {
 				termsAndNewTerms[n - 1] = append(termsAndNewTerms[n - 1], 
 					inputTerm("Please enter the new name for \"" + termsAndNewTerms[n - 1][0] + "\": ", os.Stdin))
+			}
+			if termsAndNewTerms[n-1][1] == "" {
+				termsAndNewTerms[n-1] = []string{termsAndNewTerms[n-1][0]}
 			}
 		}
 	}
