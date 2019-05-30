@@ -15,10 +15,10 @@ import (
 	"strings"
 	"strconv"
 	//	"bufio"
-	"github.com/fatih/camelcase"
+
 )
 
-const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
+
 const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
 const aliasURL = "https://git.sr.ht/~wrycode/DWCHelper/blob/master/aliases.csv"
 
@@ -38,10 +38,9 @@ func main() {
 	f, err := os.Open(os.Args[1] + ".settings")
 	defer f.Close()
 	if err == nil {
-		fmt.Println("Using settings from previous run. To run with")
-		fmt.Println("clean options and redo the import process, please")
-		fmt.Println("delete", os.Args[1] + ".settings", " and re-run DWCHelper...")
-		fmt.Println()
+		Prompt(false,`Using settings from previous run. To run with
+clean options and redo the import process, please` +
+	"delete " + os.Args[1] + ".settings "+ " and re-run DWCHelper...")
 
 		r := csv.NewReader(f)
 		r.LazyQuotes = true
@@ -52,7 +51,7 @@ func main() {
 		// remove terms
 		termsToRemove, err := r.Read()
 		if err != nil {
-			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
+			fmt.Println("Cannot read CSV data for terms to remove in the settings file:", err.Error())
 			os.Exit(1)
 		}
 		
@@ -60,19 +59,17 @@ func main() {
 			db = removeTerm(val, db)
 		}
 
-		// TODO remember to flush various writers
-
 		// rename the rest
 		rows, err := r.ReadAll()
 		if err != nil {
-			fmt.Println("Cannot read CSV data in the settings file:", err.Error())
+			fmt.Println("Cannot read CSV data for aliases in the settings file:", err.Error())
 			os.Exit(1)
 		}
 
 		for _, row := range rows {
 			alias := row[0]
-			DWCTerm := row[1]
-			db = renameTerm(alias, DWCTerm, db)
+			newTerm := row[1]
+			db = renameTerm(alias, newTerm, db)
 		}
 	} else {
 		// CSV writer to save the settings in the file
@@ -191,7 +188,8 @@ PrintHLine(1)
 1: yes, delete all of the above terms
 2: delete some terms (let me choose)`)
 
-	switch n := inputNumber(0,2, os.Stdin); n {
+	//	switch n := inputNumber(0,2, os.Stdin); n {
+	switch 1 {
 	case 0:
 		return []string{}
 	case 2:
@@ -204,7 +202,7 @@ PrintHLine(1)
 0: show which terms are currently selected for removal`)
 
 
-		done := false
+	done := false
 		PrintHLine(1)
 
 		for done == false {
@@ -256,19 +254,73 @@ func renameTerm(oldName, newName string, db database) database {
 // renameHelper is the interactive helper function that returns a 2D
 // array that maps terms to their new names
 func renameHelper(db database) [][]string {
-	var termsToRename [][]string
-
+//	var termsAndNewTerms [][]string
+	var suggestions [][]string
+	DWCTerms := pullDWCTerms()
 	PrintHLine(3)
+	
 	Prompt(true,`Next, let's look for terms that may match up with the 
 Darwin Core standard. We will try to automatically detect
 possible aliases in a minute, but you are welcome to look at 
 the list of terms at https://dwc.tdwg.org/terms/ first`)
 
-	aliases := getAliases(db.terms)
-	for alias, dwcterm := range aliases {
-		termsToRename = append(termsToRename, []string{alias, dwcterm})
+	// generate suggestions for each term
+	for i, term := range db.terms {
+		// blank suggestions entry 
+		suggestions = append(suggestions, []string{term})
+
+		// add DWCTerm if term may be a variation of it
+		for _, DWCTerm := range DWCTerms {
+			if stringIsVariation(term, DWCTerm) {
+				suggestions[i] = append(suggestions[i], DWCTerm)
+			}
+		}
+
+		// add alias from pre-generated aliases.csv file if
+		// term may be a variation of it
+		for _, row := range pullAliases() {
+			for _, aliasTerm := range row[1:] {
+				if stringIsVariation(term, aliasTerm) {
+					suggestions[i] = append(suggestions[i], row[0])
+				}
+			}
+		}
 	}
-	return termsToRename
+	//	fmt.Println(suggestions)
+	var test [][]string
+	for _, row := range suggestions {
+		if len(row) >= 2 {
+			test = append(test, row)
+		}
+	}
+	return test
+}
+
+// pullAliases pulls the alias database from the repository
+func pullAliases() [][]string {
+	resp, err := http.Get(aliasURL)
+	if err != nil {
+	 	fmt.Printf("Cannot pull aliases from upstream: %v\n", err.Error())
+	 	fmt.Println("Skipping the pre-generated alias suggestions...")
+	} else {
+		contents, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if err != nil {
+			fmt.Println("Error: cannot read contents of the alias file", err.Error())
+			fmt.Println("Skipping the pre-generated alias suggestions...")
+		} else {
+			r := csv.NewReader(strings.NewReader(string(contents)))
+			r.FieldsPerRecord = -1 // uneven fields allowed
+			rows, err := r.ReadAll()
+			if err != nil {
+				fmt.Println("Cannot parse CSV in alias file:", err.Error())
+				fmt.Println("Skipping the pre-generated alias suggestions...")
+			} else {
+				return rows
+			}
+		}
+	}
+	return [][]string{}
 }
 
 // pullDWCTerms grabs the current list of DWC Simple terms from their
@@ -301,87 +353,6 @@ func pullDWCTerms() []string {
 	return terms
 }
 
-// showReference returns the URL for a term on the Darwin Core website,
-// which includes a definition, comments and examples
-func showReference(term string) string {
-	return referenceURL + "#" + term
-}
-
-// getAliases pulls the alias database from the repository or sets up
-// a default one. It returns a map of alias strings to their possible term
-func getAliases(terms []string) map[string]string { 
-	//  map for storing possible aliases
-	var aliases = make(map[string]string)
-	
-	// Try to pull the alias file from online
-	resp, err := http.Get(aliasURL)
-	if err != nil {
-	 	fmt.Printf("Cannot pull aliases from upstream: %v\n", err.Error())
-	 	fmt.Println("Defaulting to an automatically generated alias list...")
-	} else { // Try to read the file
-		contents, err := ioutil.ReadAll(resp.Body)
-		defer resp.Body.Close()
-		if err != nil {
-	 		fmt.Println("Error: cannot read contents of aliasURL", err.Error())
-	 		fmt.Println("Defaulting to an automatically generated alias list...")
-			
-	 	} else { // Try to parse using csv
-			r := csv.NewReader(strings.NewReader(string(contents)))
-			r.FieldsPerRecord = -1 // uneven fields numbers allowed
-			rows, err := r.ReadAll()
-			if err != nil {
-				fmt.Println("Cannot read CSV data from alias file:", err.Error())
-				fmt.Println("Defaulting to an automatically generated alias list...")
-			} else {
-
-				// If there were no errors pulling the aliases
-				// from the online CSV file, add obvious
-				// variations of the alias to the aliases map
-				for _, row := range rows {
-					term := row[0]
-					for _, entry := range row[1:] {
-						//					fmt.Println("running addAliases(",entry,"aliases",term)
-						addAliases(entry, aliases, term)
-						
-					}
-				}
-			}
-		}
-		
-	}
-
-	// Generate default aliases from the DWC term names themselves
-	// for _, term := range terms {
-	// 	//		fmt.Println("running addAliases(",term,"aliases",term)
-
-	// 	addAliases(term, aliases, term)
-	// }
-	return aliases
-}
-
-// addAliases is a helper function for getAliases. It takes a word in
-// camelCase and maps all obvious variations to the given aliases map
-func addAliases(word string, aliases map[string]string, term string) {
-	words := camelcase.Split(word)
-	aliases[strings.Join(words, "")] = term
-	aliases[strings.Title(strings.Join(words, " "))] = term
-	aliases[strings.ToLower(strings.Join(words, " "))] = term
-	//	fmt.Println(strings.Join(words, " "))
-}
-
-// showAliases is a temporary function (for debugging) that shows all
-// aliases mapped to a term
-func showAliases(term string, aliases map[string]string) {
-	for key, value := range aliases {
-		if value == term {
-			fmt.Print(key,", ")
-		}
-	}
-	for _, word := range camelcase.Split(term) {
-		fmt.Print(word, ", ")
-	}
-}
-
 // exportDB exports its database argument to the file at the filename argument
 func exportDB(filename string, db database) {
 	f, err := os.Create(filename)
@@ -393,9 +364,9 @@ func exportDB(filename string, db database) {
 
 	w := csv.NewWriter(f)
 	// fix windows line endings
-	 if runtime.GOOS == "windows" {
-		 w.UseCRLF = true
-	 }
+	if runtime.GOOS == "windows" {
+		w.UseCRLF = true
+	}
 	w.Write(db.terms)                            // first line contains the terms in order
 	for i := range db.data[db.terms[0]].values { // use the length of the first column as the number of rows
 		var row []string
@@ -407,16 +378,6 @@ func exportDB(filename string, db database) {
 		}
 	}
 	w.Flush()
-}
-
-// notAllSame returns true if not every element of a string slice is the same
-func notAllSame(s []string) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] != s[0] {
-			return true
-		}
-	}
-	return false
 }
 
 // database holds all of the variables and their data

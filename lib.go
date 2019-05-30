@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"time"
 	"strings"
+	"github.com/fatih/camelcase"
 )
+
+const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
+
 // Index returns the first index of the target string t, or -1 if no
 // match is found
 func Index(terms []string, s string) int {
@@ -114,4 +118,46 @@ func PrintHLine(i int) {
 	for n := 0; n < i; n = n +1 {
 		fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	}
+}
+
+// showReference returns the URL for a term on the Darwin Core website,
+// which includes a definition, comments and examples
+func showReference(term string) string {
+	return referenceURL + "#" + term
+}
+
+// notAllSame returns true if not every element of a string slice is the same
+func notAllSame(s []string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] != s[0] {
+			return true
+		}
+	}
+	return false
+}
+
+// stringIsVariation is a loose matching function to determine if a
+// string could be a variation of a term in camelCase
+func stringIsVariation(s string, t string) bool {
+
+	words := camelcase.Split(t)
+	
+	switch {
+	case s == strings.ToLower(strings.Join(words, " ")):
+		return true
+	case s == strings.Title(strings.Join(words, " ")):
+		return true
+	}
+
+	stringWords := strings.Split(s, " ")
+
+	for _, x := range stringWords {
+		for _, y := range words {
+			if strings.ToLower(x) == strings.ToLower(y) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
