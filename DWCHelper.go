@@ -8,6 +8,7 @@ package main
 import (        
 	"encoding/csv"
 	"fmt"
+	"runtime"
 	"os"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 
 const termURL string = "https://raw.githubusercontent.com/tdwg/dwc/master/dist/simple_dwc_horizontal.csv"
 const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
-const aliasURL = "https://git.sr.ht/~wrycode/olduvai/blob/master/aliases.csv"
+const aliasURL = "https://git.sr.ht/~wrycode/DWCHelper/blob/master/aliases.csv"
 
 func main() {
 	// Check for filename argument
@@ -83,6 +84,11 @@ func main() {
 			w = csv.NewWriter(ioutil.Discard)
 		} else {
 			w = csv.NewWriter(settingsFile)
+		}
+
+		// fix windows line endings
+		if runtime.GOOS == "windows" {
+			w.UseCRLF = true
 		}
 
 		// remove terms
@@ -247,13 +253,22 @@ func renameTerm(oldName, newName string, db database) database {
 	return db
 }
 
-// renameHelper is the interactive helper function that returns a map
-// of terms to their new names
+// renameHelper is the interactive helper function that returns a 2D
+// array that maps terms to their new names
 func renameHelper(db database) [][]string {
-	test := [][]string{ 
-		{"Catalogue number", "catalogNumber"},
-		{"Gnawing damage", "gnawingDamage"}}
-	return test
+	var termsToRename [][]string
+
+	PrintHLine(3)
+	Prompt(true,`Next, let's look for terms that may match up with the 
+Darwin Core standard. We will try to automatically detect
+possible aliases in a minute, but you are welcome to look at 
+the list of terms at https://dwc.tdwg.org/terms/ first`)
+
+	aliases := getAliases(db.terms)
+	for alias, dwcterm := range aliases {
+		termsToRename = append(termsToRename, []string{alias, dwcterm})
+	}
+	return termsToRename
 }
 
 // pullDWCTerms grabs the current list of DWC Simple terms from their
@@ -336,14 +351,11 @@ func getAliases(terms []string) map[string]string {
 	}
 
 	// Generate default aliases from the DWC term names themselves
-	for i := 1; i < 10; i++ {
-		fmt.Println()
-	}
-	for _, term := range terms {
-		//		fmt.Println("running addAliases(",term,"aliases",term)
+	// for _, term := range terms {
+	// 	//		fmt.Println("running addAliases(",term,"aliases",term)
 
-		addAliases(term, aliases, term)
-	}
+	// 	addAliases(term, aliases, term)
+	// }
 	return aliases
 }
 
@@ -380,6 +392,10 @@ func exportDB(filename string, db database) {
 	defer f.Close()
 
 	w := csv.NewWriter(f)
+	// fix windows line endings
+	 if runtime.GOOS == "windows" {
+		 w.UseCRLF = true
+	 }
 	w.Write(db.terms)                            // first line contains the terms in order
 	for i := range db.data[db.terms[0]].values { // use the length of the first column as the number of rows
 		var row []string
