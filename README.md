@@ -13,24 +13,37 @@ files (for instance, exported from Microsoft Access). It:
   changes to the dataset)
   
 # Installation
-Linux: clone the repo and run `go install`
+Windows: An installer for the latest release can be found on the
+[Releases](https://github.com/wrycode/DWCHelper/releases) page. 
 
-Windows: TODO
+Linux: You can use the binary provided on the releases page, or easily
+build from source with the following steps:
+
+- set your GOPATH
+- install the only dependancy: `go get -u github.com/fatih/camelcase`
+- clone the repo and run run `go build`
 
 # Usage
-
+Navigate to the location of your CSV dataset in the console and run: 
 `DWCHelper <input-filename.csv> <output-filename.csv>`
+
+For Windows users, this means you need to navigate to the folder
+containing your CSV file in Windows Explorer, then click in the
+navigation bar and type "cmd" (and press Enter). The black command
+prompt window that opens up is where you type `DWCHelper
+<input-filename.csv> <output-filename.csv>`.
 
 On the first run for each dataset, DWCHelper will prompt you for
 various corrections to the data. It will save your choices in the
-`.settings` file (the name of your CSV file plus `.settings`) for
-subsequent runs; if you want to redo the prompts, simply delete this
-file.
+`.settings` file (in Windows Explorer, it appears as `<filename>.txt`
+with the type SETTINGS, but is still a normal text file that you can
+open with Notepad) for subsequent runs; if you want to redo the
+prompts, simply delete this file.
 
 ### Editing `.settings`
 The `.settings` file can be edited with a text editor to avoid redoing
 the prompts for small changes. DWCHelper is fairly tolerant of errors
-in this file and will simply ignore most typos and terms that aren't
+in this file and will simply ignore typos and terms that aren't
 in your dataset. 
 
 The first line is a CSV list of terms to remove completely from the
