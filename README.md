@@ -7,7 +7,7 @@ files (for instance, exported from Microsoft Access). It:
   etc.)
 - detects and suggests aliases to [Darwin Core](https://dwc.tdwg.org/)
   terms
-- detects and suggests terms that may not be used
+- detects and suggests terms that may not be used, and can be removed
 - allows the user to rename or remove terms
 - saves the conversion settings for future runs (to accommodate
   changes to the dataset)
@@ -69,3 +69,14 @@ the context surrounding these 1.4 to 2 million-year-old specimens. My
 objective is to understand what types of questions researchers may
 need answered in their quest to understand this period of human
 evolution. 
+
+# Todo
+
+- comment/clean helper functions, tidy up everything
+- add better testing/examples
+- Continuous Integration and publish releases on Sourcehut instead
+- remove stringIsVariation or tighten it up to cut down on false
+positives (waiting for more sample aliases before doing this)
+- refactor functions with a simplified "database" struct (no need for
+the separate "column" struct; I overbuilt that part of the program in
+anticipation of a more complicated standard)
