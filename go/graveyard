@@ -1,0 +1,95 @@
+// getAliases pulls the alias database from the repository or sets up
+// a default one. It returns a map of alias strings to their possible term
+func getAliases(terms []string) map[string]string { 
+	//  map for storing possible aliases
+	var aliases = make(map[string]string)
+	
+	// Try to pull the alias file from online
+	resp, err := http.Get(aliasURL)
+	if err != nil {
+	 	fmt.Printf("Cannot pull aliases from upstream: %v\n", err.Error())
+	 	fmt.Println("Defaulting to an automatically generated alias list...")
+	} else { // Try to read the file
+		contents, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if err != nil {
+	 		fmt.Println("Error: cannot read contents of aliasURL", err.Error())
+	 		fmt.Println("Defaulting to an automatically generated alias list...")
+			
+	 	} else { // Try to parse using csv
+			r := csv.NewReader(strings.NewReader(string(contents)))
+			r.FieldsPerRecord = -1 // uneven fields numbers allowed
+			rows, err := r.ReadAll()
+			if err != nil {
+				fmt.Println("Cannot read CSV data from alias file:", err.Error())
+				fmt.Println("Defaulting to an automatically generated alias list...")
+			} else {
+
+				// If there were no errors pulling the aliases
+				// from the online CSV file, add obvious
+				// variations of the alias to the aliases map
+				for _, row := range rows {
+					term := row[0]
+					for _, entry := range row[1:] {
+						//					fmt.Println("running addAliases(",entry,"aliases",term)
+						addAliases(entry, aliases, term)
+						
+					}
+				}
+			}
+		}
+		
+	}
+
+	// Generate default aliases from the DWC term names themselves
+	// for _, term := range terms {
+	// 	//		fmt.Println("running addAliases(",term,"aliases",term)
+
+	// 	addAliases(term, aliases, term)
+	// }
+	return aliases
+}
+
+// addAliases is a helper function for getAliases. It takes a word in
+// camelCase and maps all obvious variations to the given aliases map
+func addAliases(word string, aliases map[string]string, term string) {
+	words := camelcase.Split(word)
+	aliases[strings.Join(words, "")] = term
+	aliases[strings.Title(strings.Join(words, " "))] = term
+	aliases[strings.ToLower(strings.Join(words, " "))] = term
+	//	fmt.Println(strings.Join(words, " "))
+}
+
+// showAliases is a temporary function (for debugging) that shows all
+// aliases mapped to a term
+func showAliases(term string, aliases map[string]string) {
+	for key, value := range aliases {
+		if value == term {
+			fmt.Print(key,", ")
+		}
+	}
+	for _, word := range camelcase.Split(term) {
+		fmt.Print(word, ", ")
+	}
+}
+
+// database holds all of the variables and their data
+type database struct {
+	data  map[string]column // maps terms to data
+	terms []string          // ordered list of terms
+}
+
+// column holds one column of the database (not including the name of the term)
+type column struct {
+	values                     []string // values are stored in strings
+	varType, alias, definition string   // other metadata
+	hasDifferentValues         bool     // whether the values change for each specimen (good indicator that it's a useful variable)
+}
+
+const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
+
+// showReference returns the URL for a term on the Darwin Core website,
+// which includes a definition, comments and examples
+func showReference(term string) string {
+	return referenceURL + "#" + term
+}

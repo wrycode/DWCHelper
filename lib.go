@@ -119,11 +119,6 @@ func PrintHLine(i int) {
 	}
 }
 
-// showReference returns the URL for a term on the Darwin Core website,
-// which includes a definition, comments and examples
-func showReference(term string) string {
-	return referenceURL + "#" + term
-}
 
 // notAllSame returns true if not every element of a string slice is the same
 func notAllSame(s []string) bool {
