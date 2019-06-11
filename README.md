@@ -70,13 +70,14 @@ objective is to understand what types of questions researchers may
 need answered in their quest to understand this period of human
 evolution. 
 
-# Todo
+# TODO
 
 - comment/clean helper functions, tidy up everything
 - add better testing/examples
 - Continuous Integration and publish releases on Sourcehut instead
 - remove stringIsVariation or tighten it up to cut down on false
 positives (waiting for more sample aliases before doing this)
-- refactor functions with a simplified "database" struct (no need for
-the separate "column" struct; I overbuilt that part of the program in
-anticipation of a more complicated standard)
+
+
+
+

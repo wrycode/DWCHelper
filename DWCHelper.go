@@ -14,12 +14,10 @@ import (
 	"net/http"
 	"strings"
 	"strconv"
-	//	"bufio"
-
 )
 
 
-const referenceURL string = "http://rs.tdwg.org/dwc/terms/"
+
 const aliasURL = "https://git.sr.ht/~wrycode/DWCHelper/blob/master/aliases.csv"
 
 func main() {
@@ -135,18 +133,16 @@ func importDB(filename string) database {
 
 	// Initialize database
 	var db database
-	db.data = make(map[string]column)
+	db.data = make(map[string][]string)
 	// Ordered list of terms
 	db.terms = rows[0]
 	// Fill in columns
 	for i, term := range db.terms {
-		var temp column
 		var values []string
 		for _, row := range rows[1:] {
 			values = append(values, row[i])
 		}
-		temp.values = values
-		db.data[term] = temp
+		db.data[term] = values
 	}
 	return db
 }
@@ -166,7 +162,7 @@ func removeHelper(db database) []string {
 	var termsToRemove []string
 
 	for _, term := range db.terms {
-		if !notAllSame(db.data[term].values) {
+		if !notAllSame(db.data[term]) {
 			termsToRemove = append(termsToRemove, term)
 		}
 	}
@@ -251,8 +247,8 @@ func renameTerm(oldName, newName string, db database) database {
 	return db
 }
 
-// showTerms displays the list of terms along with some associated
-// information for renameHelper
+// showTerms displays the list of terms to the user along with some
+// associated information for renameHelper
 func showTerms(terms [][]string, suggestions [][]string) {
 	var b strings.Builder
 	b.Grow(len(terms) * 2)
@@ -424,10 +420,10 @@ func exportDB(filename string, db database) {
 		w.UseCRLF = true
 	}
 	w.Write(db.terms)                            // first line contains the terms in order
-	for i := range db.data[db.terms[0]].values { // use the length of the first column as the number of rows
+	for i := range db.data[db.terms[0]] { // use the length of the first column as the number of rows
 		var row []string
 		for _, value := range db.terms { // for each term
-			row = append(row, db.data[value].values[i]) // add the value of the term for the current row
+			row = append(row, db.data[value][i]) // add the value of the term for the current row
 		}
 		if err := w.Write(row); err != nil { // write the row
 			fmt.Println("error writing record to csv:", err)
@@ -438,13 +434,6 @@ func exportDB(filename string, db database) {
 
 // database holds all of the variables and their data
 type database struct {
-	data  map[string]column // maps terms to data
+	data  map[string][]string // maps terms to data
 	terms []string          // ordered list of terms
-}
-
-// column holds one column of the database (not including the name of the term)
-type column struct {
-	values                     []string // values are stored in strings
-	varType, alias, definition string   // other metadata
-	hasDifferentValues         bool     // whether the values change for each specimen (good indicator that it's a useful variable)
 }
