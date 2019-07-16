@@ -1,3 +1,10 @@
+# Archived Project
+
+DWCHelper is now unmaintained. Forks are obviously fine :) The build
+scripts for the Windows installer (`install.nsi` and `winbuild.sh`)
+may be useful if you are trying to make a cross-platform, command-line
+Go program. Good luck!
+
 # Description
 
 DWCHelper is a command-line utility to help format and clean up CSV
